@@ -6,7 +6,8 @@ import type { HaEntity } from '../../types/HaEntity'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { forEach } from 'lodash'
 
-defineEmits(['picked'])
+defineEmits(['picked', 'stop'])
+
 const props = defineProps({
     modelValue: Object as PropType<HomeAssistantPlugin>,
     domain: String,
@@ -94,18 +95,32 @@ function searchEntities(ev: string) {
 }
 </script>
 <template>
-    <StaticElement name="">
-        <template #default>
-            <p>Domain: {{ domain }}</p>
-        </template>
-    </StaticElement>
-    <TextElement
-        :submit="false"
-        name="search"
-        label="Search"
-        @change="searchEntities"
-        :default="''"
-    />
+    <GroupElement name="containerSearch">
+        <StaticElement name="asdasdas" :columns="{
+            default: 2,
+        }" :align="'center'" tag="p" :content="'Domain: ' +  domain"/>
+        <TextElement
+            :submit="false"
+            name="search"
+            label="Search"
+            @change="searchEntities"
+            :default="''"
+            :columns="{
+                default: 9,
+            }"
+        />
+        <ButtonElement
+            name="backButton"
+            label="Back"
+            @click="$emit('stop')"
+            secondary
+            :columns="{
+                default: 1,
+            }"
+        >
+            <MdiIcon icon="arrow-left" />
+        </ButtonElement>
+    </GroupElement>
     <StaticElement name="">
         <template #default>
             <ul class="list-group">

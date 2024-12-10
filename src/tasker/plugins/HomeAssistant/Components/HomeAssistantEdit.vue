@@ -81,14 +81,6 @@ function servicePicked(service: { domain: string; service: string }) {
 
                 <h5 v-if="currentView === 'service'">Pick an action to run</h5>
             </div>
-            <div class="col-2">
-                <BaseButton
-                    v-if="currentView !== 'main'"
-                    @click="currentView = 'main'"
-                    :btn-class="'btn-secondary'"
-                    icon-left="arrow-left"
-                />
-            </div>
         </div>
     </StaticElement>
     <TextElement
@@ -116,7 +108,7 @@ function servicePicked(service: { domain: string; service: string }) {
             :v-model="entityId"
             :default="entityId"
             :columns="{
-                default: 10,
+                default: 11,
             }"
         />
 
@@ -125,7 +117,7 @@ function servicePicked(service: { domain: string; service: string }) {
             name="primaryButton"
             @click="currentView = 'entity'"
             :columns="{
-                default: 2,
+                default: 1,
             }"
         >
             <MdiIcon icon="pencil" />
@@ -145,10 +137,12 @@ function servicePicked(service: { domain: string; service: string }) {
         :modelValue="modelValue"
         :domain="currentDomain"
         @picked="entityPicked"
+        @stop="currentView = 'main'"
     />
     <PickService
         v-if="currentView === 'service'"
         :modelValue="modelValue"
         @picked="servicePicked"
+        @stop="currentView = 'main'"
     />
 </template>

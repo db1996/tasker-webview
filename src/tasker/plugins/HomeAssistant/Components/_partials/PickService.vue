@@ -8,7 +8,7 @@ import DomainCard from '../../types/DomainCard'
 import { capitalize, forEach } from 'lodash'
 import BaseButton from '@/components/BaseButton.vue'
 
-const emit = defineEmits(['picked'])
+const emit = defineEmits(['picked', 'stop'])
 const props = defineProps({
     modelValue: Object as PropType<HomeAssistantPlugin>,
 })
@@ -220,10 +220,22 @@ watch(currentDomain, (newDomain) => {
             @click="initDefaultCards"
             secondary
             :columns="{
-                default: 2,
+                default: 1,
             }"
         >
             <MdiIcon icon="close" />
+        </ButtonElement>
+
+        <ButtonElement
+            name="backButton"
+            label="Back"
+            @click="$emit('stop')"
+            secondary
+            :columns="{
+                default: 1,
+            }"
+        >
+            <MdiIcon icon="arrow-left" />
         </ButtonElement>
     </GroupElement>
     <StaticElement name="">
