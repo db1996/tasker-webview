@@ -147,7 +147,7 @@ export default class TaskerClient {
             this.isRunning = false
             return data
         } catch (e) {
-            console.log('error caught ', e)
+            console.log('error caught', e)
             this.isRunning = false
             return null
         }
