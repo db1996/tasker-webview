@@ -143,7 +143,7 @@ export default class TaskerClient {
         }
     }
 
-    async deleteAction(index: number) : Promise<boolean> {
+    async deleteAction(index: number): Promise<boolean> {
         this.isRunning = true
         try {
             const urlParams = new URLSearchParams({
@@ -156,15 +156,14 @@ export default class TaskerClient {
                 this.isRunning = false
                 return true
             }
-        }
-        catch (e) {
+        } catch (e) {
             console.log('error caught', e)
             this.error = taskerStoreError.NO_CONNECT
             this.isRunning = false
             return false
         }
 
-        return false;
+        return false
     }
 
     async replaceAllActions(actionsTypes: Array<BaseActionType>) {

@@ -102,7 +102,6 @@ async function initActions() {
     } else {
         actionTypes.value = []
         taskerClientStatus.value = TaskerClientStatus.ERROR
-        console.log('actions is null')
     }
 }
 
@@ -199,8 +198,6 @@ async function newHomeAssistantTask() {
 }
 
 async function deleteAction(index: number) {
-    console.log('deleteAction', index)
-
     taskerClientStatus.value = TaskerClientStatus.UPLOAD
     await taskerClient.value.deleteAction(index)
     await refresh()

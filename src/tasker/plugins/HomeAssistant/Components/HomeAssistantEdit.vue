@@ -6,10 +6,18 @@ import PickEntity from './_partials/PickEntity.vue'
 import type { HaEntity } from '../types/HaEntity'
 import MdiIcon from '@/components/MdiIcon.vue'
 import PickService from './_partials/PickService.vue'
+import HttpSettings from '@/tasker/actionTypes/HttpRequest/Components/HttpSettings.vue'
+import type HttpRequestActionType from '@/tasker/actionTypes/HttpRequest/HttpRequestActionType'
 
 const props = defineProps({
     modelValue: Object as PropType<HomeAssistantPlugin>,
 })
+
+const currentTab = ref('main')
+
+function radioTabChanged(value: string) {
+    currentTab.value = value
+}
 
 const client = props.modelValue?.client
 const entityId = ref(props.modelValue?.serviceData.entity_id ?? '')
@@ -43,106 +51,128 @@ function servicePicked(service: { domain: string; service: string }) {
 }
 </script>
 <template>
-    <StaticElement name="html" v-if="client?.error !== ''">
-        <template #default>
-            <div class="alert alert-danger">
-                <div class="row">
-                    <div class="col">
-                        <h3>Could not connect to homeassistant</h3>
-                        {{ client?.error }}
+    <RadiogroupElement
+        name="radioTabs"
+        view="tabs"
+        @change="radioTabChanged"
+        :items="[
+            {
+                value: 'main',
+                label: 'Main',
+            },
+            {
+                value: 'settings',
+                label: 'Settings',
+            },
+        ]"
+        :default="currentTab"
+    />
+    <GroupElement name="MainForm" v-show="currentTab === 'main'">
+        <StaticElement name="html" v-if="client?.error !== ''">
+            <template #default>
+                <div class="alert alert-danger">
+                    <div class="row">
+                        <div class="col">
+                            <h3>Could not connect to homeassistant</h3>
+                            {{ client?.error }}
+                        </div>
+                        <div class="col-1 d-flex align-items-center">
+                            <BaseButton
+                                :loading="client?.isRunning"
+                                @click="client?.ping()"
+                                icon-left="reload"
+                            />
+                        </div>
                     </div>
-                    <div class="col-1 d-flex align-items-center">
+                </div>
+            </template>
+        </StaticElement>
+        <StaticElement name="">
+            <div class="row">
+                <div class="col">
+                    <div v-if="currentView === 'main'">
+                        <h5>Fill in details</h5>
                         <BaseButton
-                            :loading="client?.isRunning"
-                            @click="client?.ping()"
-                            icon-left="reload"
-                        />
+                            v-if="currentView === 'main'"
+                            @click="currentView = 'service'"
+                            :btn-class="'btn-secondary'"
+                        >
+                            Pick service
+                        </BaseButton>
                     </div>
-                </div>
-            </div>
-        </template>
-    </StaticElement>
-    <StaticElement name="">
-        <div class="row">
-            <div class="col">
-                <div v-if="currentView === 'main'">
-                    <h5>Fill in details</h5>
-                    <BaseButton
-                        v-if="currentView === 'main'"
-                        @click="currentView = 'service'"
-                        :btn-class="'btn-secondary'"
-                    >
-                        Pick service
-                    </BaseButton>
-                </div>
-                <h5 v-if="currentView === 'entity'">
-                    Pick an entity for the service: {{ modelValue?.serviceData.domain ?? '' }}
-                </h5>
+                    <h5 v-if="currentView === 'entity'">
+                        Pick an entity for the service: {{ modelValue?.serviceData.domain ?? '' }}
+                    </h5>
 
-                <h5 v-if="currentView === 'service'">Pick an action to run</h5>
+                    <h5 v-if="currentView === 'service'">Pick an action to run</h5>
+                </div>
             </div>
-        </div>
-    </StaticElement>
-    <TextElement
-        v-if="currentView === 'main'"
-        name="domain"
-        label="Domain"
-        field-name="domain"
-        :v-model="currentDomain"
-        :default="currentDomain"
-    />
-    <TextElement
-        v-if="currentView === 'main'"
-        name="service"
-        label="Service"
-        field-name="service"
-        :v-model="currentService"
-        :default="currentService"
-    />
-    <GroupElement name="container2" v-if="currentView === 'main'">
+        </StaticElement>
         <TextElement
-            ref="entityInput"
-            name="entity"
-            label="Entity"
-            field-name="entity"
-            :v-model="entityId"
-            :default="entityId"
-            :columns="{
-                default: 11,
-            }"
+            v-if="currentView === 'main'"
+            name="domain"
+            label="Domain"
+            field-name="domain"
+            :v-model="currentDomain"
+            :default="currentDomain"
+        />
+        <TextElement
+            v-if="currentView === 'main'"
+            name="service"
+            label="Service"
+            field-name="service"
+            :v-model="currentService"
+            :default="currentService"
+        />
+        <GroupElement name="container2" v-if="currentView === 'main'">
+            <TextElement
+                ref="entityInput"
+                name="entity"
+                label="Entity"
+                field-name="entity"
+                :v-model="entityId"
+                :default="entityId"
+                :columns="{
+                    default: 11,
+                }"
+            />
+
+            <ButtonElement
+                label="Pick"
+                name="primaryButton"
+                @click="currentView = 'entity'"
+                :columns="{
+                    default: 1,
+                }"
+            >
+                <MdiIcon icon="pencil" />
+            </ButtonElement>
+        </GroupElement>
+        <TextareaElement
+            v-if="currentView === 'main' && dataLoaded"
+            name="data"
+            label="Data"
+            field-name="data"
+            :v-model="currentData"
+            :default="currentData"
         />
 
-        <ButtonElement
-            label="Pick"
-            name="primaryButton"
-            @click="currentView = 'entity'"
-            :columns="{
-                default: 1,
-            }"
-        >
-            <MdiIcon icon="pencil" />
-        </ButtonElement>
+        <PickEntity
+            v-if="currentView === 'entity'"
+            :modelValue="modelValue"
+            :domain="currentDomain"
+            @picked="entityPicked"
+            @stop="currentView = 'main'"
+        />
+        <PickService
+            v-if="currentView === 'service'"
+            :modelValue="modelValue"
+            @picked="servicePicked"
+            @stop="currentView = 'main'"
+        />
     </GroupElement>
-    <TextareaElement
-        v-if="currentView === 'main' && dataLoaded"
-        name="data"
-        label="Data"
-        field-name="data"
-        :v-model="currentData"
-        :default="currentData"
-    />
-
-    <PickEntity
-        v-if="currentView === 'entity'"
-        :modelValue="modelValue"
-        :domain="currentDomain"
-        @picked="entityPicked"
-        @stop="currentView = 'main'"
-    />
-    <PickService
-        v-if="currentView === 'service'"
-        :modelValue="modelValue"
-        @picked="servicePicked"
-        @stop="currentView = 'main'"
+    <HttpSettings
+        v-show="currentTab === 'settings' && modelValue !== null"
+        :HttpActionType="modelValue?.actionType as HttpRequestActionType"
     />
 </template>

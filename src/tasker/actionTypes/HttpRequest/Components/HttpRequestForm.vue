@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, type PropType } from 'vue'
 import type { Ref } from 'vue'
-import type HttpRequestActionType from './HttpRequestActionType'
-import { MethodType } from './helpers/MethodType'
+import type HttpRequestActionType from '../HttpRequestActionType'
+import { MethodType } from '../helpers/MethodType'
 import { forEach } from 'lodash'
+import HttpSettings from './HttpSettings.vue'
 
 const props = defineProps({
     modelValue: Object as PropType<HttpRequestActionType>,
@@ -121,41 +122,12 @@ onMounted(() => {
             </ObjectElement>
         </template>
     </ListElement>
+    <HttpSettings v-show="currentTab === 3 && modelValue !== null" :HttpActionType="modelValue" />
+
     <TextareaElement
         name="body"
         v-show="currentTab === 2"
         :default="modelValue?.params.body"
         :rows="10"
-    />
-    <TextElement
-        v-show="currentTab === 3"
-        name="timeout"
-        label="Timeout (s)"
-        input-type="number"
-        :default="modelValue?.params.timeout"
-    />
-    <ToggleElement
-        v-show="currentTab === 3"
-        name="trust_any_certificate"
-        label="Trust any certificate"
-        :default="modelValue?.params.trust_any_certificate"
-    />
-    <ToggleElement
-        v-show="currentTab === 3"
-        name="follow_redirects"
-        label="Follow Redirects"
-        :default="modelValue?.params.follow_redirects"
-    />
-    <ToggleElement
-        v-show="currentTab === 3"
-        name="use_cookies"
-        label="Use Cookies"
-        :default="modelValue?.params.use_cookies"
-    />
-    <ToggleElement
-        v-show="currentTab === 3"
-        name="structure_output"
-        label="Structure Output (JSON)"
-        :default="modelValue?.params.structure_output"
     />
 </template>

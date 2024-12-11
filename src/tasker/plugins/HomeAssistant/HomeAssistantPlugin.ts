@@ -10,6 +10,7 @@ import HttpRequestActionType from '@/tasker/actionTypes/HttpRequest/HttpRequestA
 import { MethodType } from '@/tasker/actionTypes/HttpRequest/helpers/MethodType'
 
 export default class HomeAssistantPlugin extends BasePlugin {
+    realActionType: HttpRequestActionType | null = null
     name: string = 'Home Assistant'
     icon: string = 'home-assistant'
     modal_width: string = 'lg'
@@ -22,6 +23,7 @@ export default class HomeAssistantPlugin extends BasePlugin {
 
     constructor(actionType: BaseActionType) {
         super(actionType)
+
         if (HomeAssistantPlugin.taskerReplaceUrl === '') {
             let envToken = import.meta.env.VITE_HOMEASSISTANT_TASKER_TOKEN
             if (typeof envToken !== 'string' || envToken.length === 0) {
@@ -40,7 +42,6 @@ export default class HomeAssistantPlugin extends BasePlugin {
     canHandle(): boolean {
         if (this.actionType.name === 'HTTP Request') {
             const actionType = this.actionType as HttpRequestActionType
-
             if (
                 actionType.params.method_type === MethodType.POST &&
                 ((HomeAssistantPlugin.taskerReplaceUrl !== '' &&
@@ -51,6 +52,8 @@ export default class HomeAssistantPlugin extends BasePlugin {
                 this.serviceData = HomeAssistantPlugin.urlToServiceData(actionType.params.url, body)
 
                 if (this.serviceData.is_service) {
+                    const realActionType = this.actionType as HttpRequestActionType
+                    this.realActionType = realActionType
                     return true
                 }
             }
@@ -62,7 +65,17 @@ export default class HomeAssistantPlugin extends BasePlugin {
         return Promise.resolve(this.buildFormComponentEntry(markRaw(HomeAssistantEdit)))
     }
 
-    submitForm(values: { domain: string; service: string; entity: string; data: string }): boolean {
+    submitForm(values: {
+        domain: string
+        service: string
+        entity: string
+        data: string
+        timeout?: number
+        trust_any_certificate?: boolean
+        follow_redirects?: boolean
+        use_cookies?: boolean
+        structure_output?: boolean
+    }): boolean {
         this.serviceData.domain = values.domain
         this.serviceData.service = values.service
         this.serviceData.entity_id = values.entity
@@ -75,6 +88,24 @@ export default class HomeAssistantPlugin extends BasePlugin {
             }
         } else {
             this.serviceData.data = null
+        }
+        if (this.realActionType !== null) {
+            if (values.hasOwnProperty('timeout')) {
+                this.realActionType.params.timeout = values.timeout as number
+            }
+            if (values.hasOwnProperty('trust_any_certificate')) {
+                this.realActionType.params.trust_any_certificate =
+                    values.trust_any_certificate as boolean
+            }
+            if (values.hasOwnProperty('follow_redirects')) {
+                this.realActionType.params.follow_redirects = values.follow_redirects as boolean
+            }
+            if (values.hasOwnProperty('use_cookies')) {
+                this.realActionType.params.use_cookies = values.use_cookies as boolean
+            }
+            if (values.hasOwnProperty('structure_output')) {
+                this.realActionType.params.structure_output = values.structure_output as boolean
+            }
         }
 
         return true

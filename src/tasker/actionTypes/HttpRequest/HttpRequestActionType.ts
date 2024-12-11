@@ -1,4 +1,4 @@
-import HttpRequestForm from './HttpRequestForm.vue'
+import HttpRequestForm from './Components/HttpRequestForm.vue'
 import { markRaw } from 'vue'
 import BaseActionType from '@/tasker/actionTypes/BaseActionType'
 import type { ActiontypeFormComponent } from '@/tasker/actionTypes/ActiontypeFormComponent'
