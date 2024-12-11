@@ -1,6 +1,6 @@
 import Action from './types/Action'
 import { taskerStoreError } from './enums/taskerStoreError'
-import { cloneDeep, forEach } from 'lodash'
+import { forEach } from 'lodash'
 import type BaseActionType from './actionTypes/BaseActionType'
 
 export default class TaskerClient {
@@ -99,12 +99,11 @@ export default class TaskerClient {
     async replaceAction(actionType: BaseActionType) {
         this.isRunning = true
         actionType.setArgs()
-        const tempActionType = this.formatActionSave(actionType)
 
         const tUrl = this.buildUrl('/actions')
         const response = await fetch(
             tUrl,
-            this.getOptions('PUT', { action: tempActionType.action, index: tempActionType.index }),
+            this.getOptions('PUT', { action: actionType.action, index: actionType.index }),
         )
 
         try {
@@ -121,14 +120,13 @@ export default class TaskerClient {
     async insertActionLast(actionType: BaseActionType) {
         this.isRunning = true
         actionType.setArgs()
-        const tempActionType = this.formatActionSave(actionType)
 
         const tUrl = this.buildUrl('/actions')
         const response = await fetch(
             tUrl,
             this.getOptions('PATCH', {
-                action: tempActionType.action,
-                index: tempActionType.index,
+                action: actionType.action,
+                index: actionType.index,
             }),
         )
 
@@ -202,16 +200,5 @@ export default class TaskerClient {
         }
 
         return requestOptions
-    }
-
-    public formatActionSave(action: BaseActionType): BaseActionType {
-        const actionType = cloneDeep(action)
-        forEach(actionType.action.args, (arg) => {
-            if (typeof arg.value === 'number') {
-                arg.value = arg.value.toString()
-            }
-        })
-
-        return actionType
     }
 }
