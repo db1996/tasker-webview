@@ -2,19 +2,19 @@
 import BaseButton from '@/components/BaseButton.vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { ActionTypeManager } from '@/tasker/helpers/ActionTypeManager'
-import type { ActiontypeFormComponent } from '@/tasker/types/ActiontypeFormComponent'
+import type { ActiontypeFormComponent } from '@/tasker/actionTypes/ActiontypeFormComponent'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import TaskerClient from '@/tasker/TaskerClient'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { TaskerClientStatus } from '@/tasker/enums/TaskerClientStatus'
 import BsModal from '@/components/BsModal.vue'
-import type BaseActionType from '@/tasker/types/BaseActionType'
+import type BaseActionType from '@/tasker/actionTypes/BaseActionType'
 import { forEach } from 'lodash'
 import ActionRow from '@/tasker/ActionRow.vue'
-import type { PluginFormComponent } from '@/tasker/types/PluginFormComponent'
+import type { PluginFormComponent } from '@/tasker/plugins/PluginFormComponent'
 import HomeAssistantPlugin from '@/tasker/plugins/HomeAssistant/HomeAssistantPlugin'
-import type BasePlugin from '@/tasker/types/BasePlugin'
+import type BasePlugin from '@/tasker/plugins/BasePlugin'
 
 const taskerClient = ref<TaskerClient>(new TaskerClient())
 const actionTypes = ref<BaseActionType[]>([])

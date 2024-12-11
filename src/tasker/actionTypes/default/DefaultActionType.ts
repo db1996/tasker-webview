@@ -1,7 +1,7 @@
 import DefaultForm from './DefaultForm.vue'
 import { markRaw } from 'vue'
-import BaseActionType from '@/tasker/types/BaseActionType'
-import type { ActiontypeFormComponent } from '@/tasker/types/ActiontypeFormComponent'
+import BaseActionType from '@/tasker/actionTypes/BaseActionType'
+import type { ActiontypeFormComponent } from '@/tasker/actionTypes/ActiontypeFormComponent'
 import { ActionTypeSupportedType } from '@/tasker/enums/ActionTypeSupportedType'
 import { forEach } from 'lodash'
 

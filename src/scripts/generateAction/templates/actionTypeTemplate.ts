@@ -1,7 +1,7 @@
 import {{VUE_FILENAME}} from './{{VUE_FILENAME}}.vue'
 import { markRaw } from 'vue'
 import BaseActionType from '@/tasker/types/BaseActionType'
-import type { ActiontypeFormComponent } from '@/tasker/types/FormComponentEntry'
+import type { ActiontypeFormComponent } from '@/tasker/actionTypes/ActiontypeFormComponent'
 import type Action from '@/tasker/types/Action'
 
 export default class {{TS_FILENAME}} extends BaseActionType {

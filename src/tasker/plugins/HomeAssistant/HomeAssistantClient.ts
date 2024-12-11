@@ -1,7 +1,6 @@
 import { useCookies } from 'vue3-cookies'
 const { cookies } = useCookies()
 import * as homeassistant from '@brittonhayes/homeassistant-ts'
-import UrlServiceData from './types/UrlServiceData'
 import type { HaEntity } from './types/HaEntity'
 import type { HaService } from './types/HaService'
 
@@ -12,8 +11,6 @@ export class HomeAssistantClient {
     public pingStatus: boolean = false
     public error: string = ''
     public isRunning: boolean = false
-
-    public lastRunServiceCall: UrlServiceData | null = null
 
     public constructor() {
         let defaultUrl = import.meta.env.VITE_HOMEASSISTANT_URL

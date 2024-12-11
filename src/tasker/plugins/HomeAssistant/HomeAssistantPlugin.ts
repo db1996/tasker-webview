@@ -1,10 +1,10 @@
 import { markRaw } from 'vue'
 import HomeAssistantEdit from './Components/HomeAssistantEdit.vue'
-import BaseActionType from '@/tasker/types/BaseActionType'
-import BasePlugin from '@/tasker/types/BasePlugin'
-import type { PluginFormComponent } from '@/tasker/types/PluginFormComponent'
+import BaseActionType from '@/tasker/actionTypes/BaseActionType'
+import BasePlugin from '@/tasker/plugins/BasePlugin'
+import type { PluginFormComponent } from '@/tasker/plugins/PluginFormComponent'
 import { HomeAssistantClient } from './HomeAssistantClient'
-import UrlServiceData from './types/UrlServiceData'
+import ServiceData from './types/ServiceData'
 import { forEach } from 'lodash'
 import HttpRequestActionType from '@/tasker/actionTypes/HttpRequest/HttpRequestActionType'
 import { MethodType } from '@/tasker/actionTypes/HttpRequest/helpers/MethodType'
@@ -15,7 +15,7 @@ export default class HomeAssistantPlugin extends BasePlugin {
     modal_width: string = 'lg'
 
     client: HomeAssistantClient = new HomeAssistantClient()
-    serviceData: UrlServiceData = new UrlServiceData()
+    serviceData: ServiceData = new ServiceData()
 
     static taskerReplaceUrl: string = ''
     static taskerReplaceToken: string = ''
@@ -111,9 +111,9 @@ export default class HomeAssistantPlugin extends BasePlugin {
         ]
     }
 
-    static urlToServiceData(url: string, body: object | null = null): UrlServiceData {
+    static urlToServiceData(url: string, body: object | null = null): ServiceData {
         const client: HomeAssistantClient = new HomeAssistantClient()
-        const urlServiceData = new UrlServiceData()
+        const urlServiceData = new ServiceData()
 
         if (
             !url.startsWith(HomeAssistantPlugin.taskerReplaceUrl) &&

@@ -1,4 +1,4 @@
-export default class UrlServiceData {
+export default class ServiceData {
     is_service: boolean = false
     baseUrl: string = ''
     apiActionUrl: string = ''

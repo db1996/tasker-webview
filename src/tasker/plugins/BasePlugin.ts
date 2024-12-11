@@ -1,4 +1,4 @@
-import BaseActionType from './BaseActionType'
+import BaseActionType from './../actionTypes/BaseActionType'
 import type { PluginFormComponent } from './PluginFormComponent'
 
 export default class BasePlugin {

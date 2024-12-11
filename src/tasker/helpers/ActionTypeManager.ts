@@ -1,6 +1,6 @@
 import type Action from '../types/Action'
 import type { IActionTypeConstructor } from '../interfaces/IActionTypeConstructor'
-import BaseActionType from '../types/BaseActionType'
+import BaseActionType from '../actionTypes/BaseActionType'
 import type { IPluginConstructor } from '../interfaces/IPluginConstructor'
 import type BasePlugin from '../types/BasePlugin'
 import { forEach } from 'lodash'

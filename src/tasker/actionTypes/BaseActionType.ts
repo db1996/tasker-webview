@@ -1,7 +1,7 @@
 import { ActionTypeSupportedType } from '../enums/ActionTypeSupportedType'
-import type Action from './Action'
+import type Action from '../types/Action'
 import type { ActiontypeFormComponent } from './ActiontypeFormComponent'
-import type BasePlugin from './BasePlugin'
+import type BasePlugin from './../plugins/BasePlugin'
 
 export default class BaseActionType {
     supported_plugins: Array<BasePlugin> = []

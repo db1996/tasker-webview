@@ -1,4 +1,4 @@
-import type BaseActionType from '../types/BaseActionType'
+import type BaseActionType from '../actionTypes/BaseActionType'
 import type BasePlugin from '../types/BasePlugin'
 
 export interface IPluginConstructor {

@@ -2,7 +2,7 @@
 import MdiIcon from '@/components/MdiIcon.vue'
 import { computed, ref, type PropType } from 'vue'
 import { forEach } from 'lodash'
-import type BaseActionType from './types/BaseActionType'
+import type BaseActionType from './actionTypes/BaseActionType'
 import BaseButton from '@/components/BaseButton.vue'
 import { ActionTypeSupportedType } from './enums/ActionTypeSupportedType'
 

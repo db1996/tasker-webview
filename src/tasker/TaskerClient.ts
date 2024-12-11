@@ -2,7 +2,7 @@ import { useCookies } from 'vue3-cookies'
 import Action from './types/Action'
 import { taskerStoreError } from './enums/taskerStoreError'
 import { cloneDeep, forEach } from 'lodash'
-import type BaseActionType from './types/BaseActionType'
+import type BaseActionType from './actionTypes/BaseActionType'
 
 const { cookies } = useCookies()
 
