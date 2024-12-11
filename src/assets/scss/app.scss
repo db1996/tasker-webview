@@ -2,14 +2,10 @@
 @use 'sass:math';
 @import 'vendor';
 @import '@vueform/vueform/themes/bootstrap/scss/index.scss';
+@import '_reset';
 
-html,
-body {
-  height: 100%;
-}
-#app {
-  min-height: 100%;
-}
+
+
 
 .button-space {
   min-width: 32px;

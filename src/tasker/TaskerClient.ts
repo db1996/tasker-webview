@@ -154,11 +154,25 @@ export default class TaskerClient {
     }
 
     async deleteAction(index: number) {
-        const urlParams = new URLSearchParams({
-            index: index.toString(),
-        })
-        const tUrl = this.buildUrl('/delete', urlParams)
-        const response = await fetch(tUrl, this.getOptions('GET'))
+        this.isRunning = true
+        try {
+            const urlParams = new URLSearchParams({
+                index: index.toString(),
+            })
+            const tUrl = this.buildUrl('/delete', urlParams)
+            const response = await fetch(tUrl, this.getOptions('GET'))
+            if (response.status === 200) {
+                this.error = taskerStoreError.OK
+                this.isRunning = false
+                return true
+            }
+        }
+        catch (e) {
+            console.log('error caught', e)
+            this.error = taskerStoreError.NO_CONNECT
+            this.isRunning = false
+            return false
+        }
     }
 
     async replaceAllActions(actionsTypes: Array<BaseActionType>) {

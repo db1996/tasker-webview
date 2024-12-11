@@ -20,10 +20,8 @@
     "bootstrap": "^5.3.3",
     "lodash": "^4.17.21",
     "openapi-typescript-fetch": "^2.0.0",
-    "path-browserify": "^1.0.1",
     "pinia": "^2.2.6",
     "vue": "^3.5.12",
-    "vue-cookies": "^1.8.4",
     "vue-router": "^4.4.5",
     "vue3-cookies": "^1.0.6",
     "vuedraggable": "^4.1.0"
