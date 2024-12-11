@@ -153,7 +153,7 @@ export default class TaskerClient {
         }
     }
 
-    async deleteAction(index: number) {
+    async deleteAction(index: number) : Promise<boolean> {
         this.isRunning = true
         try {
             const urlParams = new URLSearchParams({
@@ -173,6 +173,8 @@ export default class TaskerClient {
             this.isRunning = false
             return false
         }
+
+        return false;
     }
 
     async replaceAllActions(actionsTypes: Array<BaseActionType>) {
