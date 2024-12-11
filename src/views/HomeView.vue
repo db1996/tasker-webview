@@ -137,8 +137,8 @@ const newPluginType = ref<BasePlugin | null>(null)
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function submitPlugin(FormData: any, form$: any) {
+    const data = form$.data
     if (!isNewPluginAction.value) {
-        const data = form$.data
         const actionType = actionTypes.value[modalPlugin.value?.actionTypeIndex as number]
         if (actionType) {
             const plugin = actionType.supported_plugins[modalPlugin.value?.pluginIndex as number]
@@ -150,6 +150,7 @@ async function submitPlugin(FormData: any, form$: any) {
             }
         }
     } else if (newPluginType.value !== null) {
+        newPluginType.value.submitForm(data)
         newPluginType.value.setArgs()
         await taskerClient.value.insertActionLast(newPluginType.value.actionType)
         await refresh()
