@@ -1,24 +1,19 @@
 <script setup lang="ts">
-import BaseButton from '@/components/BaseButton.vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { taskerStoreError } from '@/tasker/enums/taskerStoreError'
 import { computed, onMounted, ref } from 'vue'
-import { Validator } from '@vueform/vueform'
 import MdiIcon from '@/components/MdiIcon.vue'
-import { useCookies } from 'vue3-cookies'
 import { HomeAssistantClient } from '@/tasker/plugins/HomeAssistant/HomeAssistantClient'
 import TaskerClient from '@/tasker/TaskerClient'
 
-const { cookies } = useCookies()
-
 const settingForm = ref()
-const isLoading = ref(false)
 
 const homeAssistantClient = ref(new HomeAssistantClient())
 const taskerClient = ref<TaskerClient>(new TaskerClient())
 
 onMounted(async () => {
     await homeAssistantClient.value.ping()
+    await taskerClient.value.pingTasker()
     settingForm.value?.update({
         tasker_url: taskerClient.value.url,
         homeassistant_url: homeAssistantClient.value.baseUrl,
@@ -26,55 +21,9 @@ onMounted(async () => {
     })
 })
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function onSubmit(FormData: any, form$: any) {
-    isLoading.value = true
-    const data = form$.data
-
-    if (data.tasker_url) {
-        await taskerClient.value.setUrl(data.tasker_url)
-        if (taskerClient.value.error === taskerStoreError.OK) {
-            cookies.set('tasker_url', data.tasker_url, '365d')
-        }
-    }
-
-    if (data.homeassistant_url && data.homeassistant_token) {
-        homeAssistantClient.value.setUrl(data.homeassistant_url)
-        homeAssistantClient.value.setToken(data.homeassistant_token)
-        await homeAssistantClient.value.ping()
-
-        if (homeAssistantClient.value.error.length === 0) {
-            cookies.set('homeassistant_url', data.homeassistant_url, '365d')
-            cookies.set('homeassistant_token', data.homeassistant_token, '365d')
-        }
-    }
-
-    isLoading.value = false
-}
-
-const submitForm = async () => {
-    if (settingForm.value) {
-        await settingForm.value.submit()
-    }
-}
-
-const isUrl = class extends Validator {
-    get msg() {
-        return 'The URL field must be a valid URL, it has to start with http:// or https://'
-    }
-    async check(value: string) {
-        if (!/^(http|https):\/\/[^ "]+/.test(value)) {
-            return false
-        }
-
-        await taskerClient.value.setUrl(value)
-        return taskerClient.value.error === taskerStoreError.OK && taskerClient.value.ping
-    }
-}
-
 const taskerStatus = computed(() => {
     let ret = {
-        text: 'Waiting for input',
+        text: 'Loading..',
         text_class: '',
         icon: 'clock',
         spin: false,
@@ -110,7 +59,7 @@ const taskerStatus = computed(() => {
 
 const homeAssistantStatus = computed(() => {
     let ret = {
-        text: 'Waiting for input',
+        text: 'Loading..',
         text_class: '',
         icon: 'clock',
     }
@@ -146,21 +95,11 @@ const homeAssistantStatus = computed(() => {
 
 <template>
     <MainLayout title="Settings">
-        <template #actions>
-            <BaseButton
-                :btnClass="'btn-primary'"
-                icon-left="content-save"
-                sm
-                @click="submitForm"
-                :loading="isLoading"
-            />
-        </template>
         <template #default>
             <Vueform
                 ref="settingForm"
                 validate-on="change"
                 :display-errors="false"
-                :endpoint="onSubmit"
             >
                 <StaticElement name="static">
                     <div class="row">
@@ -176,10 +115,10 @@ const homeAssistantStatus = computed(() => {
                     </div>
                 </StaticElement>
                 <TextElement
+                    readonly
                     name="tasker_url"
                     label="Your URL for tasker WebUI"
                     field-name="URL"
-                    :rules="[isUrl, 'required']"
                 />
                 <StaticElement name="static">
                     <div class="row">
@@ -195,17 +134,17 @@ const homeAssistantStatus = computed(() => {
                     </div>
                 </StaticElement>
                 <TextElement
+                    readonly
                     name="homeassistant_url"
                     label="Your home assistant url"
                     placeholder="ex: http://homeassistant.local:8123"
                     field-name="URL"
-                    :rules="['required']"
                 />
                 <TextareaElement
+                    readonly
                     name="homeassistant_token"
                     label="Your home assistant access token"
                     field-name="token"
-                    :rules="['required']"
                 />
             </Vueform>
         </template>

@@ -1,10 +1,7 @@
-import { useCookies } from 'vue3-cookies'
 import Action from './types/Action'
 import { taskerStoreError } from './enums/taskerStoreError'
 import { cloneDeep, forEach } from 'lodash'
 import type BaseActionType from './actionTypes/BaseActionType'
-
-const { cookies } = useCookies()
 
 export default class TaskerClient {
     url: string = ''
@@ -13,14 +10,7 @@ export default class TaskerClient {
     isRunning: boolean = false
 
     public constructor() {
-        let defaultUrl = import.meta.env.VITE_TASKER_URL
-        const cookieUrl = cookies.get('tasker_url')
-
-        if (cookieUrl && cookieUrl.length) {
-            defaultUrl = cookieUrl
-        }
-
-        this.url = defaultUrl
+        this.url = import.meta.env.VITE_TASKER_URL
 
         if (this.url.length === 0) {
             this.error = taskerStoreError.NO_URL

@@ -1,5 +1,3 @@
-import { useCookies } from 'vue3-cookies'
-const { cookies } = useCookies()
 import * as homeassistant from '@brittonhayes/homeassistant-ts'
 import type { HaEntity } from './types/HaEntity'
 import type { HaService } from './types/HaService'
@@ -13,20 +11,16 @@ export class HomeAssistantClient {
     public isRunning: boolean = false
 
     public constructor() {
-        let defaultUrl = import.meta.env.VITE_HOMEASSISTANT_URL
-        let defaultAccesstoken = import.meta.env.VITE_HOMEASSISTANT_TOKEN
-        const cookieUrl = cookies.get('homeassistant_url')
-        const cookieToken = cookies.get('homeassistant_token')
+        this.baseUrl = import.meta.env.VITE_HOMEASSISTANT_URL
+        this.accessToken = import.meta.env.VITE_HOMEASSISTANT_TOKEN
 
-        if (cookieUrl && cookieUrl.length) {
-            defaultUrl = cookieUrl
-        }
-        if (cookieToken && cookieToken.length) {
-            defaultAccesstoken = cookieToken
+        if (this.baseUrl.length === 0) {
+            this.error = 'No URL'
         }
 
-        this.baseUrl = defaultUrl
-        this.accessToken = defaultAccesstoken
+        if (this.accessToken.length === 0) {
+            this.error = 'No Access Token'
+        }
 
         this.client = this.createClient()
     }
@@ -155,34 +149,6 @@ export class HomeAssistantClient {
                 return false
             })
     }
-
-    // public async ping(): Promise<boolean> {
-    //     this.isRunning = true
-    //     const pingUrl = this.buildUrl('/api/')
-
-    //     return fetch(pingUrl, this.getOptions('GET'))
-    //         .then((res) => {
-    //             this.isRunning = false
-    //             if (!res.ok) {
-    //                 this.pingStatus = false
-    //                 this.error = res.statusText
-    //                 if (res.status === 401) {
-    //                     this.error = 'Unauthorized, check your access token'
-    //                 }
-    //                 return false
-    //             } else {
-    //                 this.pingStatus = true
-    //                 this.error = ''
-    //                 return true
-    //             }
-    //         })
-    //         .catch((err) => {
-    //             this.isRunning = false
-    //             this.pingStatus = false
-    //             this.error = err
-    //             return false
-    //         })
-    // }
 
     public buildUrl(path: string, params: URLSearchParams | null = null): string {
         if (params) {
