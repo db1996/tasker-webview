@@ -92,7 +92,7 @@ function saveLabel() {
 }
 </script>
 <template>
-    <span class="list-group-item action-row">
+    <span class="list-group-item action-row mb-3">
         <div class="action-row-reorder">
             <MdiIcon :icon="'menu'" />
         </div>

@@ -13,7 +13,6 @@ export default class HomeAssistantPlugin extends BasePlugin {
     realActionType: HttpRequestActionType | null = null
     name: string = 'Home Assistant'
     icon: string = 'home-assistant'
-    modal_width: string = 'lg'
 
     client: HomeAssistantClient = new HomeAssistantClient()
     serviceData: ServiceData = new ServiceData()

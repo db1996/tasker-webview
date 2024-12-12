@@ -8,7 +8,6 @@ import draggable from 'vuedraggable'
 import TaskerClient from '@/tasker/TaskerClient'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { TaskerClientStatus } from '@/tasker/enums/TaskerClientStatus'
-import BsModal from '@/components/BsModal.vue'
 import type BaseActionType from '@/tasker/actionTypes/BaseActionType'
 import { forEach } from 'lodash'
 import ActionRow from '@/tasker/ActionRow.vue'
@@ -203,17 +202,41 @@ async function deleteAction(index: number) {
     await refresh()
 }
 
+const cardExists = ref(false)
+onMounted(() => {
+    const checkCardExists = () => {
+        cardExists.value = !!document.querySelector('#actionMainCard')
+    }
 
-async function saveLabel(index: number, label: string) {
-    taskerClientStatus.value = TaskerClientStatus.UPLOAD
-    await taskerClient.value.saveLabel(index, label ?? '');
-    await refresh()
-}
+    // Initial check
+    checkCardExists()
+
+    // Create a MutationObserver to monitor DOM changes
+    const observer = new MutationObserver(() => {
+        checkCardExists() // Recheck whenever DOM changes
+    })
+
+    // Observe the body for changes
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+    })
+
+    // Cleanup the observer on unmount
+    onUnmounted(() => {
+        observer.disconnect()
+    })
+})
+
+const actionSettingForm = ref(false)
 </script>
 
 <template :key="key">
-    <MainLayout title="Task actions" :loading="isBooting">
-        <template v-slot:headerButton></template>
+    <MainLayout
+        title="Task actions"
+        :loading="isBooting"
+        v-if="actionModalComponent === null && pluginModalComponent === null"
+    >
         <template v-slot:actions>
             <span class="text-small me-2">{{ taskerStatus.text }}</span>
             <MdiIcon :icon="taskerStatus.icon" :class="[taskerStatus.text_class]" />
@@ -225,7 +248,6 @@ async function saveLabel(index: number, label: string) {
                 v-tooltip
                 data-title="Create action"
             />
-            <BaseButton btnClass="btn-secondary ms-2" sm icon-left="cog" to="/settings" />
         </template>
         <template #default>
             <div class="alert alert-danger" v-if="taskerClientStatus === TaskerClientStatus.ERROR">
@@ -246,7 +268,6 @@ async function saveLabel(index: number, label: string) {
                                 :key="randomKey()"
                                 @editAction="openActiontypeForm(element)"
                                 @deleteAction="deleteAction(index)"
-                                @saveLabel="saveLabel(index, $event)"
                                 @editPlugin="
                                     modalPlugin = {
                                         actionTypeIndex: index,
@@ -258,91 +279,142 @@ async function saveLabel(index: number, label: string) {
                     </draggable>
                 </div>
             </div>
-
-            <BsModal
-                :show="actionModalComponent !== null"
-                :width-class="actionModalComponent?.props.modelValue.modal_width"
-                scrollable
-                @close="refresh()"
+        </template>
+    </MainLayout>
+    <MainLayout
+        v-if="pluginModalComponent !== null"
+        :size="pluginModalComponent?.props.modelValue.modal_width"
+    >
+        <template #title>Edit Plugin: {{ pluginModalComponent?.props.modelValue.name }} </template>
+        <template v-slot:actions>
+            <span class="text-small me-2">{{ taskerStatus.text }}</span>
+            <MdiIcon :icon="taskerStatus.icon" :class="[taskerStatus.text_class]" />
+            <BaseButton
+                :btn-class="'btn-primary m-2'"
+                @click="pluginForm.submit()"
+                sm
+                icon-left="content-save"
+                :disabled="taskerClient.isRunning"
+                :loading="taskerClient.isRunning"
+            />
+            <BaseButton
+                :disabled="taskerClient.isRunning"
+                sm
+                :btn-class="'btn-secondary'"
+                icon-left="close"
+                @click="refresh()"
+            />
+        </template>
+        <template #default>
+            <Vueform
+                ref="pluginForm"
+                validate-on="step"
+                :display-errors="false"
+                :endpoint="submitPlugin"
             >
-                <template #title>
-                    Edit action:
-                    {{
-                        actionModalComponent?.props.modelValue.name === ''
-                            ? actionModalComponent?.props.modelValue.tasker_name
-                            : actionModalComponent?.props.modelValue.name
-                    }}
-                </template>
+                <component
+                    v-if="pluginModalComponent"
+                    :is="pluginModalComponent.component"
+                    v-bind="pluginModalComponent.props"
+                />
+            </Vueform>
+        </template>
+    </MainLayout>
 
-                <template #content>
-                    <Vueform
-                        ref="actionForm"
-                        validate-on="step"
-                        :display-errors="false"
-                        :endpoint="onSubmit"
-                    >
-                        <component
-                            v-if="actionModalComponent"
-                            :is="actionModalComponent.component"
-                            v-bind="actionModalComponent.props"
-                        />
-                    </Vueform>
-                </template>
+    <MainLayout
+        v-if="actionModalComponent !== null"
+        :size="actionModalComponent?.props.modelValue.modal_width"
+        mainId="actionMainCard"
+    >
+        <template #title>
+            Edit action:
+            {{
+                actionModalComponent?.props.modelValue.name === ''
+                    ? actionModalComponent?.props.modelValue.tasker_name
+                    : actionModalComponent?.props.modelValue.name
+            }}
+        </template>
+        <template v-slot:actions>
+            <span class="text-small me-2">{{ taskerStatus.text }}</span>
+            <MdiIcon :icon="taskerStatus.icon" :class="[taskerStatus.text_class]" />
+            <BaseButton
+                btn-class="btn-primary m-2"
+                sm
+                @click="actionForm.submit()"
+                icon-left="content-save"
+                :disabled="taskerClient.isRunning"
+                :loading="taskerClient.isRunning"
+            />
+            <BaseButton
+                sm
+                :disabled="taskerClient.isRunning"
+                btn-class="btn-secondary"
+                icon-left="close"
+                @click="refresh()"
+            />
+            <BaseButton
+                sm
+                :disabled="taskerClient.isRunning"
+                :btn-class="actionSettingForm ? 'btn-primary' : 'btn-outline-secondary'"
+                class="ms-2"
+                icon-left="cog"
+                @click="actionSettingForm = !actionSettingForm"
+            />
+        </template>
+        <template #default>
+            <div class="high-index">
+                <Vueform
+                    ref="actionForm"
+                    validate-on="step"
+                    :display-errors="false"
+                    :endpoint="onSubmit"
+                    id="actionForm"
+                >
+                    <component
+                        v-if="actionModalComponent"
+                        :is="actionModalComponent.component"
+                        v-bind="actionModalComponent.props"
+                    />
 
-                <template #footer>
-                    <BaseButton
-                        :btn-class="'btn-primary'"
-                        @click="actionForm.submit()"
-                        icon-left="content-save"
-                        :loading="taskerClient.isRunning"
+                    <Teleport
+                        :disabled="!cardExists"
+                        :key="cardExists.toString()"
+                        to="#actionMainCard"
                     >
-                        Save
-                    </BaseButton>
-                    <BaseButton :btn-class="'btn-secondary'" @click="refresh()">
-                        Cancel
-                    </BaseButton>
-                </template>
-            </BsModal>
-            <BsModal
-                :show="pluginModalComponent !== null"
-                :width-class="pluginModalComponent?.props.modelValue.modal_width"
-                scrollable
-                @close="refresh()"
-            >
-                <template #title>
-                    Edit action:
-                    {{ pluginModalComponent?.props.modelValue.name }}
-                </template>
-
-                <template #content>
-                    <Vueform
-                        ref="pluginForm"
-                        validate-on="step"
-                        :display-errors="false"
-                        :endpoint="submitPlugin"
-                    >
-                        <component
-                            v-if="pluginModalComponent"
-                            :is="pluginModalComponent.component"
-                            v-bind="pluginModalComponent.props"
-                        />
-                    </Vueform>
-                </template>
-
-                <template #footer>
-                    <BaseButton
-                        :btn-class="'btn-primary'"
-                        @click="pluginForm.submit()"
-                        icon-left="content-save"
-                        :loading="taskerClient.isRunning"
-                    >
-                        Save
-                    </BaseButton>
-                    <BaseButton :btn-class="'btn-secondary'" @click="refresh()">
-                        Cancel
-                    </BaseButton>
-                </template>
-            </BsModal>
+                        <div
+                            id="actionSettingpane"
+                            class="settings-pane active"
+                            v-if="actionSettingForm"
+                        >
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <div class="row">
+                                        <div
+                                            class="col-6 d-flex align-items-center justify-content-start weird-height"
+                                        >
+                                            <div class="button-space">
+                                                <BaseButton
+                                                    btnClass="btn-outline-secondary me-2"
+                                                    sm
+                                                    icon-left="arrow-left"
+                                                    @click="actionSettingForm = false"
+                                                />
+                                            </div>
+                                            <h5 class="card-title">Settings</h5>
+                                        </div>
+                                        <div
+                                            class="col-6 d-flex align-items-center justify-content-end weird-height"
+                                        >
+                                            <!-- actions -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body"></div>
+                            </div>
+                        </div>
+                    </Teleport>
+                </Vueform>
+            </div>
         </template>
     </MainLayout>
 </template>

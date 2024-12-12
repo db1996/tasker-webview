@@ -13,7 +13,6 @@ export default class HttpRequestActionType extends BaseActionType {
     tasker_code: number = 339
     tasker_name: string = 'HTTP Request'
 
-    modal_width: string = 'lg'
     show_args: boolean = true
 
     // Parameters
