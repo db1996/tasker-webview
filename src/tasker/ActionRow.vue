@@ -5,7 +5,7 @@ import { forEach } from 'lodash'
 import type BaseActionType from './actionTypes/BaseActionType'
 import BaseButton from '@/components/BaseButton.vue'
 import { ActionTypeSupportedType } from './enums/ActionTypeSupportedType'
-import { useTaskerClient } from '@/stores/useTaskerClient';
+import { useTaskerClient } from '@/stores/useTaskerClient'
 
 const taskerClient = useTaskerClient().taskerClient
 
@@ -102,15 +102,36 @@ async function saveLabel() {
             <div class="flex-grow-1 action-row-maincontent">
                 <div class="d-flex justify-content-between">
                     <div class="d-flex align-items-center">
-                        <h5 class="mb-1 me-2" style="text-wrap: nowrap;">
+                        <h5 class="mb-1 me-2" style="text-wrap: nowrap">
                             {{ modelValue.name !== '' ? modelValue.name : modelValue.tasker_name }}
                         </h5>
 
-                        <div v-if="!editLabel" @click="editLabel = true" class="cursor-pointer badge" :class="labelBg">{{ modelValue.action.label ?? 'No label' }} <MdiIcon icon="pencil" /></div>
+                        <div
+                            v-if="!editLabel"
+                            @click="editLabel = true"
+                            class="cursor-pointer badge"
+                            :class="labelBg"
+                        >
+                            {{ modelValue.action.label ?? 'No label' }} <MdiIcon icon="pencil" />
+                        </div>
 
                         <div class="input-group">
-                            <input v-if="editLabel" type="text" class="form-control" :value="modelValue.action.label !== undefined ? modelValue.action.label : ''">
-                            <BaseButton btn-class="btn-outline-primary" v-if="editLabel" icon-left="content-save" @click="saveLabel"/>
+                            <input
+                                v-if="editLabel"
+                                type="text"
+                                class="form-control"
+                                :value="
+                                    modelValue.action.label !== undefined
+                                        ? modelValue.action.label
+                                        : ''
+                                "
+                            />
+                            <BaseButton
+                                btn-class="btn-outline-primary"
+                                v-if="editLabel"
+                                icon-left="content-save"
+                                @click="saveLabel"
+                            />
                         </div>
                     </div>
                     <div>
