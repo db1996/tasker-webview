@@ -53,7 +53,7 @@
     border-top-left-radius: 0.375rem !important;
     border-bottom-left-radius: 0.375rem !important;
 
-    cursor: pointer;
+    @extend .cursor-pointer;
     @extend .d-flex;
     @extend .align-items-center;
     @extend .justify-content-center;
@@ -94,7 +94,7 @@ span.badge {
 }
 
 .row-hover:hover {
-  cursor: pointer;
+  @extend .cursor-pointer;
   color: var(--bs-list-group-action-hover-color);
   text-decoration: none;
   background-color: var(--bs-list-group-action-hover-bg);
@@ -105,6 +105,10 @@ span.badge {
 }
 
 .list-group-item.hover-active:hover {
-  cursor: pointer;
+  @extend .cursor-pointer;
   @extend .active;
+}
+
+.cursor-pointer {
+  cursor: pointer;
 }

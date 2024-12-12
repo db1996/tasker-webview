@@ -202,6 +202,13 @@ async function deleteAction(index: number) {
     await taskerClient.value.deleteAction(index)
     await refresh()
 }
+
+
+async function saveLabel(index: number, label: string) {
+    taskerClientStatus.value = TaskerClientStatus.UPLOAD
+    await taskerClient.value.saveLabel(index, label ?? '');
+    await refresh()
+}
 </script>
 
 <template :key="key">
@@ -239,6 +246,7 @@ async function deleteAction(index: number) {
                                 :key="randomKey()"
                                 @editAction="openActiontypeForm(element)"
                                 @deleteAction="deleteAction(index)"
+                                @saveLabel="saveLabel(index, $event)"
                                 @editPlugin="
                                     modalPlugin = {
                                         actionTypeIndex: index,

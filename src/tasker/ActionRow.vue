@@ -5,8 +5,9 @@ import { forEach } from 'lodash'
 import type BaseActionType from './actionTypes/BaseActionType'
 import BaseButton from '@/components/BaseButton.vue'
 import { ActionTypeSupportedType } from './enums/ActionTypeSupportedType'
+import TaskerClient from './TaskerClient';
 
-const emit = defineEmits(['editAction', 'editPlugin', 'deleteAction'])
+const emit = defineEmits(['editAction', 'editPlugin', 'deleteAction', 'saveLabel'])
 const props = defineProps({
     modelValue: {
         type: Object as PropType<BaseActionType>,
@@ -72,6 +73,23 @@ function mainEditClick() {
         emit('editAction', props.modelValue)
     }
 }
+
+const editLabel = ref(false)
+
+const labelBg = computed(() => {
+    console.log(props.modelValue.action.label !== undefined);
+
+    if (props.modelValue.action.label !== undefined) {
+        return 'bg-primary'
+    }
+    return 'bg-secondary'
+})
+
+function saveLabel() {
+    const label = document.querySelector('.input-group input') as HTMLInputElement
+    emit('saveLabel', label.value)
+    editLabel.value = false
+}
 </script>
 <template>
     <span class="list-group-item action-row">
@@ -83,9 +101,16 @@ function mainEditClick() {
             <div class="flex-grow-1 action-row-maincontent">
                 <div class="d-flex justify-content-between">
                     <div class="d-flex align-items-center">
-                        <h5 class="mb-1 me-2">
+                        <h5 class="mb-1 me-2" style="text-wrap: nowrap;">
                             {{ modelValue.name !== '' ? modelValue.name : modelValue.tasker_name }}
                         </h5>
+
+                        <div v-if="!editLabel" @click="editLabel = true" class="cursor-pointer badge" :class="labelBg">{{ modelValue.action.label ?? 'No label' }} <MdiIcon icon="pencil" /></div>
+
+                        <div class="input-group">
+                            <input v-if="editLabel" type="text" class="form-control" :value="modelValue.action.label !== undefined ? modelValue.action.label : ''">
+                            <BaseButton btn-class="btn-outline-primary" v-if="editLabel" icon-left="content-save" @click="saveLabel"/>
+                        </div>
                     </div>
                     <div>
                         <BaseButton
