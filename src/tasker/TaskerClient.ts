@@ -96,6 +96,26 @@ export default class TaskerClient {
         }
     }
 
+    async saveLabel(index: number, label: string) {
+        this.isRunning = true
+        const urlParams = new URLSearchParams({
+            index: index.toString(),
+            value: label,
+        })
+        const tUrl = this.buildUrl('/label', urlParams)
+        const response = await fetch(tUrl, this.getOptions('GET'))
+
+        try {
+            const data = await response.json()
+            this.isRunning = false
+            return data
+        } catch (e) {
+            console.log('error caught', e)
+            this.isRunning = false
+            return null
+        }
+    }
+
     async replaceAction(actionType: BaseActionType) {
         this.isRunning = true
         actionType.setArgs()

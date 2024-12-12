@@ -7,7 +7,6 @@ import type { HaEntity } from '../types/HaEntity'
 import MdiIcon from '@/components/MdiIcon.vue'
 import PickService from './_partials/PickService.vue'
 import HttpSettings from '@/tasker/actionTypes/HttpRequest/Components/HttpSettings.vue'
-import type HttpRequestActionType from '@/tasker/actionTypes/HttpRequest/HttpRequestActionType'
 
 const props = defineProps({
     modelValue: Object as PropType<HomeAssistantPlugin>,
@@ -172,7 +171,8 @@ function servicePicked(service: { domain: string; service: string }) {
         />
     </GroupElement>
     <HttpSettings
-        v-show="currentTab === 'settings' && modelValue !== null"
-        :HttpActionType="modelValue?.actionType as HttpRequestActionType"
+        v-show="currentTab === 'settings'"
+        v-if="modelValue !== null && modelValue?.realActionType !== null"
+        :HttpActionType="modelValue?.realActionType"
     />
 </template>
