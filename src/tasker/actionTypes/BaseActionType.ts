@@ -8,7 +8,7 @@ export default class BaseActionType {
     tasker_name: string = ''
     tasker_code: number = 0
     name: string = ''
-    modal_width: string = 'xl'
+    modal_width: string = 'col-md-8'
     action: Action
     index: number = 0
 

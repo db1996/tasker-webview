@@ -6,7 +6,7 @@ export default class BasePlugin {
 
     name: string = ''
     icon: string = 'connection'
-    modal_width: string = 'xl'
+    modal_width: string = 'col-md-8'
     index: number = 0
 
     constructor(actionType: BaseActionType) {
