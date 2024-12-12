@@ -120,6 +120,7 @@ async function saveLabel() {
                                 v-if="editLabel"
                                 type="text"
                                 class="form-control"
+                                @keyup.enter="saveLabel"
                                 :value="
                                     modelValue.action.label !== undefined
                                         ? modelValue.action.label
