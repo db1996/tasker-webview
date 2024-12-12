@@ -8,8 +8,8 @@ export default class PopupActionType extends BaseActionType {
     tasker_code: number = 550
     tasker_name: string = 'Popup'
     name: string = 'Popup'
-    modal_width: string = ''
     message: string = ''
+    modal_width: string = 'col-md-6'
 
     constructor(action: Action) {
         super(action)

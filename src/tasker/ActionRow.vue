@@ -5,9 +5,11 @@ import { forEach } from 'lodash'
 import type BaseActionType from './actionTypes/BaseActionType'
 import BaseButton from '@/components/BaseButton.vue'
 import { ActionTypeSupportedType } from './enums/ActionTypeSupportedType'
-import TaskerClient from './TaskerClient';
+import { useTaskerClient } from '@/stores/useTaskerClient';
 
-const emit = defineEmits(['editAction', 'editPlugin', 'deleteAction', 'saveLabel'])
+const taskerClient = useTaskerClient().taskerClient
+
+const emit = defineEmits(['editAction', 'editPlugin', 'deleteAction', 'refresh'])
 const props = defineProps({
     modelValue: {
         type: Object as PropType<BaseActionType>,
@@ -77,22 +79,21 @@ function mainEditClick() {
 const editLabel = ref(false)
 
 const labelBg = computed(() => {
-    console.log(props.modelValue.action.label !== undefined);
-
     if (props.modelValue.action.label !== undefined) {
         return 'bg-primary'
     }
     return 'bg-secondary'
 })
 
-function saveLabel() {
+async function saveLabel() {
     const label = document.querySelector('.input-group input') as HTMLInputElement
-    emit('saveLabel', label.value)
+    await taskerClient.saveLabel(props.modelValue.index, label.value)
     editLabel.value = false
+    emit('refresh')
 }
 </script>
 <template>
-    <span class="list-group-item action-row">
+    <span class="list-group-item action-row mb-3">
         <div class="action-row-reorder">
             <MdiIcon :icon="'menu'" />
         </div>

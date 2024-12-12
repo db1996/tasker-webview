@@ -4,8 +4,9 @@
 @import '@vueform/vueform/themes/bootstrap/scss/index.scss';
 @import '_reset';
 
-
-
+.list-group-item + .list-group-item {
+  border-top: 1px solid var(--bs-list-group-border-color);
+}
 
 .button-space {
   min-width: 32px;
@@ -111,4 +112,30 @@ span.badge {
 
 .cursor-pointer {
   cursor: pointer;
+}
+
+.high-index {
+  z-index: 1000;
+  position: relative;
+}
+.settings-pane {
+  position: absolute;
+  z-index: 1;
+  top: -1px;
+  right: 0;
+  width: 300px;
+  height: calc(100% + 1px);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s;
+
+  &.active {
+    transform: translateX(300px);
+  }
+}
+.weird-height {
+  height: 47.5px;
+}
+
+.d-relative {
+  position: relative;
 }
