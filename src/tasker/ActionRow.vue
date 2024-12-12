@@ -9,7 +9,7 @@ import { useTaskerClient } from '@/stores/useTaskerClient';
 
 const taskerClient = useTaskerClient().taskerClient
 
-const emit = defineEmits(['editAction', 'editPlugin', 'deleteAction', 'saveLabel'])
+const emit = defineEmits(['editAction', 'editPlugin', 'deleteAction', 'refresh'])
 const props = defineProps({
     modelValue: {
         type: Object as PropType<BaseActionType>,
@@ -79,18 +79,17 @@ function mainEditClick() {
 const editLabel = ref(false)
 
 const labelBg = computed(() => {
-    console.log(props.modelValue.action.label !== undefined);
-
     if (props.modelValue.action.label !== undefined) {
         return 'bg-primary'
     }
     return 'bg-secondary'
 })
 
-function saveLabel() {
+async function saveLabel() {
     const label = document.querySelector('.input-group input') as HTMLInputElement
-    taskerClient.saveLabel(props.modelValue.index, label.value)
+    await taskerClient.saveLabel(props.modelValue.index, label.value)
     editLabel.value = false
+    emit('refresh')
 }
 </script>
 <template>

@@ -247,7 +247,7 @@ async function saveLabel(index: number, label: string) {
                                 :key="randomKey()"
                                 @editAction="openActiontypeForm(element)"
                                 @deleteAction="deleteAction(index)"
-                                @saveLabel="saveLabel(index, $event)"
+                                @refresh="refresh"
                                 @editPlugin="
                                     modalPlugin = {
                                         actionTypeIndex: index,
