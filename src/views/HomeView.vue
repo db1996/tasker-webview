@@ -5,7 +5,6 @@ import { ActionTypeManager } from '@/tasker/helpers/ActionTypeManager'
 import type { ActiontypeFormComponent } from '@/tasker/actionTypes/ActiontypeFormComponent'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
-import TaskerClient from '@/tasker/TaskerClient'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { TaskerClientStatus } from '@/tasker/enums/TaskerClientStatus'
 import BsModal from '@/components/BsModal.vue'
@@ -15,8 +14,10 @@ import ActionRow from '@/tasker/ActionRow.vue'
 import type { PluginFormComponent } from '@/tasker/plugins/PluginFormComponent'
 import HomeAssistantPlugin from '@/tasker/plugins/HomeAssistant/HomeAssistantPlugin'
 import type BasePlugin from '@/tasker/plugins/BasePlugin'
+import { useTaskerClient } from '@/stores/useTaskerClient';
 
-const taskerClient = ref<TaskerClient>(new TaskerClient())
+const taskerClient = useTaskerClient().taskerClient
+
 const actionTypes = ref<BaseActionType[]>([])
 const taskerClientStatus = ref<TaskerClientStatus>(TaskerClientStatus.NONE)
 const modalPlugin = ref<{
@@ -85,7 +86,7 @@ watch([modalPlugin, actionTypes], async () => {
 async function initActions() {
     taskerClientStatus.value = TaskerClientStatus.RETRIEVE
 
-    const actions = await taskerClient.value.getActions()
+    const actions = await taskerClient.getActions()
     if (actions != null) {
         const manager = new ActionTypeManager()
         await manager.loadPlugins()
@@ -113,7 +114,7 @@ function randomKey() {
 async function reorderAction(event: any) {
     if (event.newIndex !== event.oldIndex) {
         taskerClientStatus.value = TaskerClientStatus.UPLOAD
-        await taskerClient.value.moveAction(event.oldIndex, event.newIndex)
+        await taskerClient.moveAction(event.oldIndex, event.newIndex)
         await refresh()
     }
 }
@@ -125,7 +126,7 @@ async function onSubmit(FormData: any, form$: any) {
     if (actionType) {
         const resp = actionType.submitForm(data)
         if (resp) {
-            await taskerClient.value.replaceAction(actionType)
+            await taskerClient.replaceAction(actionType)
             await refresh()
         }
     }
@@ -144,14 +145,14 @@ async function submitPlugin(FormData: any, form$: any) {
             const resp = plugin.submitForm(data)
             if (resp) {
                 plugin.setArgs()
-                await taskerClient.value.replaceAction(plugin.actionType)
+                await taskerClient.replaceAction(plugin.actionType)
                 await refresh()
             }
         }
     } else if (newPluginType.value !== null) {
         newPluginType.value.submitForm(data)
         newPluginType.value.setArgs()
-        await taskerClient.value.insertActionLast(newPluginType.value.actionType)
+        await taskerClient.insertActionLast(newPluginType.value.actionType)
         await refresh()
     }
 }
@@ -179,7 +180,7 @@ const taskerStatus = computed(() => {
             ret.text = 'Error'
             ret.text_class = 'text-danger'
             ret.icon = 'alert'
-            ret.tooltip = taskerClient.value.error
+            ret.tooltip = taskerClient.error
             break
 
         default:
@@ -199,14 +200,14 @@ async function newHomeAssistantTask() {
 
 async function deleteAction(index: number) {
     taskerClientStatus.value = TaskerClientStatus.UPLOAD
-    await taskerClient.value.deleteAction(index)
+    await taskerClient.deleteAction(index)
     await refresh()
 }
 
 
 async function saveLabel(index: number, label: string) {
     taskerClientStatus.value = TaskerClientStatus.UPLOAD
-    await taskerClient.value.saveLabel(index, label ?? '');
+    await taskerClient.saveLabel(index, label ?? '');
     await refresh()
 }
 </script>

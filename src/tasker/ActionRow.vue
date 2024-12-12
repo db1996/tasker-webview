@@ -5,7 +5,9 @@ import { forEach } from 'lodash'
 import type BaseActionType from './actionTypes/BaseActionType'
 import BaseButton from '@/components/BaseButton.vue'
 import { ActionTypeSupportedType } from './enums/ActionTypeSupportedType'
-import TaskerClient from './TaskerClient';
+import { useTaskerClient } from '@/stores/useTaskerClient';
+
+const taskerClient = useTaskerClient().taskerClient
 
 const emit = defineEmits(['editAction', 'editPlugin', 'deleteAction', 'saveLabel'])
 const props = defineProps({
@@ -87,7 +89,7 @@ const labelBg = computed(() => {
 
 function saveLabel() {
     const label = document.querySelector('.input-group input') as HTMLInputElement
-    emit('saveLabel', label.value)
+    taskerClient.saveLabel(props.modelValue.index, label.value)
     editLabel.value = false
 }
 </script>
