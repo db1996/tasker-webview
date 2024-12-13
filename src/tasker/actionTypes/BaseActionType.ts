@@ -2,6 +2,9 @@ import { ActionTypeSupportedType } from '../enums/ActionTypeSupportedType'
 import type Action from '../types/Action'
 import type { ActiontypeFormComponent } from './ActiontypeFormComponent'
 import type BasePlugin from './../plugins/BasePlugin'
+import { markRaw } from 'vue'
+import DefaultForm from './default/DefaultForm.vue'
+import { forEach } from 'lodash'
 
 export default class BaseActionType {
     supported_plugins: Array<BasePlugin> = []
@@ -13,7 +16,7 @@ export default class BaseActionType {
     index: number = 0
 
     supportedType: ActionTypeSupportedType = ActionTypeSupportedType.CUSTOM
-    show_args: boolean = false
+    show_args: boolean = true
     description: string = ''
 
     // Always run this super in the constructor of the child class first. This will set the action and the tasker_name and tasker_code
@@ -30,7 +33,7 @@ export default class BaseActionType {
 
     // return a promise with the form component vue file
     getFormComponent(): Promise<ActiontypeFormComponent> {
-        throw new Error('Not implemented getFormComponent')
+        return Promise.resolve(this.buildFormComponentEntry(markRaw(DefaultForm)))
     }
 
     // Do not override this, this will build the form component entry, it is required to be ActiontypeFormComponent
@@ -43,8 +46,14 @@ export default class BaseActionType {
 
     // Will be called when the form in the modal is submitted
     submitForm(values: object): boolean {
-        console.log('submitForm', values)
-        throw new Error('Not implemented submitForm')
+        forEach(values, (value, key) => {
+            forEach(this.action.args, (arg) => {
+                if (arg.name === key) {
+                    arg.value = value
+                }
+            })
+        })
+        return true
     }
 
     // Will be called before saving the action, set all the args on this.actiontype.args here

@@ -18,6 +18,7 @@ const props = defineProps({
 })
 
 const toggled = ref(false)
+const editLabel = ref(false)
 
 function toggleExpand() {
     if (toggled.value) {
@@ -38,6 +39,13 @@ const argsList = computed(() => {
         strstr.push([value.name, value.value.toString()])
     })
     return strstr
+})
+
+const labelBg = computed(() => {
+    if (props.modelValue.action.label !== undefined) {
+        return 'bg-primary'
+    }
+    return 'bg-secondary'
 })
 
 const editType = computed(() => {
@@ -69,21 +77,8 @@ const editType = computed(() => {
 })
 
 function mainEditClick() {
-    if (editType.value.type === 'plugin') {
-        emit('editPlugin', props.modelValue.supported_plugins[0])
-    } else {
-        emit('editAction', props.modelValue)
-    }
+    emit('editAction', props.modelValue.index)
 }
-
-const editLabel = ref(false)
-
-const labelBg = computed(() => {
-    if (props.modelValue.action.label !== undefined) {
-        return 'bg-primary'
-    }
-    return 'bg-secondary'
-})
 
 async function saveLabel() {
     const label = document.querySelector('.input-group input') as HTMLInputElement

@@ -2,7 +2,7 @@ import type Action from '../types/Action'
 import type { IActionTypeConstructor } from '../interfaces/IActionTypeConstructor'
 import BaseActionType from '../actionTypes/BaseActionType'
 import type { IPluginConstructor } from '../interfaces/IPluginConstructor'
-import type BasePlugin from '../types/BasePlugin'
+import type BasePlugin from '../plugins/BasePlugin'
 import { forEach } from 'lodash'
 
 export class ActionTypeManager {
@@ -14,8 +14,8 @@ export class ActionTypeManager {
             import('./../actionTypes/popup/PopupActionType'),
 
             import('./../actionTypes/HttpRequest/HttpRequestActionType'),
-            // {{ADDIMPORT}}
-            import('./../actionTypes/default/DefaultActionType'),
+
+            import('./../actionTypes/BaseActionType'),
         ]
 
         const loadedForms = await Promise.all(formModules)

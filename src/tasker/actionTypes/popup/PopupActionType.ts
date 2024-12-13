@@ -10,6 +10,7 @@ export default class PopupActionType extends BaseActionType {
     name: string = 'Popup'
     message: string = ''
     modal_width: string = 'col-md-6'
+    show_args: boolean = false
 
     constructor(action: Action) {
         super(action)

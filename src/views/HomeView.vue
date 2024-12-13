@@ -3,7 +3,7 @@ import BaseButton from '@/components/BaseButton.vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { ActionTypeManager } from '@/tasker/helpers/ActionTypeManager'
 import type { ActiontypeFormComponent } from '@/tasker/actionTypes/ActiontypeFormComponent'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { TaskerClientStatus } from '@/tasker/enums/TaskerClientStatus'
@@ -14,73 +14,87 @@ import type { PluginFormComponent } from '@/tasker/plugins/PluginFormComponent'
 import HomeAssistantPlugin from '@/tasker/plugins/HomeAssistant/HomeAssistantPlugin'
 import type BasePlugin from '@/tasker/plugins/BasePlugin'
 import { useTaskerClient } from '@/stores/useTaskerClient'
+import HomeViewState from '@/helpers/homeView/HomeViewState'
+import router from '@/router'
+import { useRoute } from 'vue-router'
+import { EditStatusEnum } from '@/helpers/homeView/EditStatusEnum'
 
 const taskerClient = useTaskerClient().taskerClient
-
-const actionTypes = ref<BaseActionType[]>([])
+const state = ref(<HomeViewState>new HomeViewState())
 const taskerClientStatus = ref<TaskerClientStatus>(TaskerClientStatus.NONE)
-const modalPlugin = ref<{
-    actionTypeIndex: number | null
-    pluginIndex: number | null
-} | null>({
-    actionTypeIndex: null,
-    pluginIndex: null,
-})
 const actionForm = ref()
 const pluginForm = ref()
 const actionModalComponent = ref<ActiontypeFormComponent | null>(null)
 const pluginModalComponent = ref<PluginFormComponent | null>(null)
-const isBooting = ref(true)
+const actionSettingForm = ref(false)
+const newPluginType = ref<BasePlugin | null>(null)
+const route = useRoute()
+
+watch(
+    () => route.query.edit, // Use a function to track `route.query.edit`
+    async () => checkEditParam(),
+)
+
+async function checkEditParam(refreshNoEdit: boolean = true) {
+    console.log('checkEditParam', urlParams.value.edit, urlParams.value.plugin)
+
+    if (urlParams.value.edit !== null) {
+        const actionIndex = urlParams.value.edit
+        const pluginIndex = urlParams.value.plugin
+        const action = state.value.actionTypeRows[actionIndex]
+        if (pluginIndex !== null) {
+            const typeFormComponentEntry: PluginFormComponent =
+                await state.value.actionTypeRows[actionIndex].supported_plugins[
+                    pluginIndex
+                ].getFormComponent()
+
+            pluginModalComponent.value = typeFormComponentEntry
+            actionModalComponent.value = null
+            state.value.editStatus = EditStatusEnum.EditPlugin
+        } else {
+            if (action) {
+                actionModalComponent.value = await action.getFormComponent()
+                pluginModalComponent.value = null
+                state.value.editStatus = EditStatusEnum.EditAction
+            }
+        }
+    } else {
+        if (refreshNoEdit) {
+            await refresh()
+        }
+    }
+}
+
+const urlParams = computed(() => {
+    const params: { edit: number | null; plugin: number | null } = { edit: null, plugin: null }
+
+    if (route.query.plugin !== undefined && route.query.plugin !== null) {
+        params.plugin = parseFloat(route.query.plugin as string)
+    }
+    if (route.query.edit !== undefined && route.query.edit !== null) {
+        params.edit = parseFloat(route.query.edit as string)
+    }
+    return params
+})
 
 onMounted(async () => {
     await refresh()
-    isBooting.value = false
+    await checkEditParam(false)
+    state.value.isBooting = false
 })
 
-onUnmounted(() => {
-    actionTypes.value = []
-})
-
-const isRefreshing = ref(false)
 async function refresh() {
     // reload entire page
-    if (!isRefreshing.value) {
+    if (!state.value.isRefreshing) {
+        state.value = new HomeViewState()
+        state.value.isRefreshing = true
         actionModalComponent.value = null
-        isNewPluginAction.value = false
-        isRefreshing.value = true
-        modalPlugin.value = null
+        pluginModalComponent.value = null
         await initActions()
     }
 
-    isRefreshing.value = false
+    state.value.isRefreshing = false
 }
-
-async function openActiontypeForm(actionType: BaseActionType) {
-    actionModalComponent.value = await actionType.getFormComponent()
-    modalPlugin.value = null
-}
-
-watch([modalPlugin, actionTypes], async () => {
-    if (
-        modalPlugin.value !== null &&
-        modalPlugin.value.actionTypeIndex !== null &&
-        modalPlugin.value.pluginIndex !== null &&
-        actionTypes.value[modalPlugin.value.actionTypeIndex] !== undefined &&
-        actionTypes.value[modalPlugin.value.actionTypeIndex].supported_plugins[
-            modalPlugin.value.pluginIndex
-        ] !== undefined
-    ) {
-        actionModalComponent.value = null
-        const typeFormComponentEntry: PluginFormComponent =
-            await actionTypes.value[modalPlugin.value.actionTypeIndex].supported_plugins[
-                modalPlugin.value.pluginIndex
-            ].getFormComponent()
-
-        pluginModalComponent.value = typeFormComponentEntry
-    } else {
-        pluginModalComponent.value = null
-    }
-})
 
 async function initActions() {
     taskerClientStatus.value = TaskerClientStatus.RETRIEVE
@@ -90,17 +104,17 @@ async function initActions() {
         const manager = new ActionTypeManager()
         await manager.loadPlugins()
         await manager.loadForms()
-        actionTypes.value = []
+        state.value.actionTypeRows = []
         forEach(actions, async (action, index) => {
             const baseActionType = manager.getFormForAction(action)
             if (baseActionType != null) {
                 baseActionType.index = index
-                actionTypes.value.push(baseActionType)
+                state.value.actionTypeRows.push(baseActionType)
             }
         })
         taskerClientStatus.value = TaskerClientStatus.NONE
     } else {
-        actionTypes.value = []
+        state.value.actionTypeRows = []
         taskerClientStatus.value = TaskerClientStatus.ERROR
     }
 }
@@ -119,28 +133,29 @@ async function reorderAction(event: any) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function onSubmit(FormData: any, form$: any) {
+async function submitBaseAction(FormData: any, form$: any) {
     const data = form$.data
     const actionType = actionModalComponent.value?.props.modelValue as BaseActionType
     if (actionType) {
         const resp = actionType.submitForm(data)
         if (resp) {
             await taskerClient.replaceAction(actionType)
-            await refresh()
         }
     }
+    router.push({ query: {} })
 }
-
-const isNewPluginAction = ref(false)
-const newPluginType = ref<BasePlugin | null>(null)
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function submitPlugin(FormData: any, form$: any) {
     const data = form$.data
-    if (!isNewPluginAction.value) {
-        const actionType = actionTypes.value[modalPlugin.value?.actionTypeIndex as number]
+    if (
+        state.value.editStatus == EditStatusEnum.EditPlugin &&
+        urlParams.value.edit !== null &&
+        urlParams.value.plugin !== null
+    ) {
+        const actionType = state.value.actionTypeRows[urlParams.value.edit]
         if (actionType) {
-            const plugin = actionType.supported_plugins[modalPlugin.value?.pluginIndex as number]
+            const plugin = actionType.supported_plugins[urlParams.value.plugin]
             const resp = plugin.submitForm(data)
             if (resp) {
                 plugin.setArgs()
@@ -148,12 +163,12 @@ async function submitPlugin(FormData: any, form$: any) {
                 await refresh()
             }
         }
-    } else if (newPluginType.value !== null) {
+    } else if (state.value.editStatus == EditStatusEnum.AddPlugin && newPluginType.value !== null) {
         newPluginType.value.submitForm(data)
         newPluginType.value.setArgs()
         await taskerClient.insertActionLast(newPluginType.value.actionType)
-        await refresh()
     }
+    router.push({ query: {} })
 }
 
 const taskerStatus = computed(() => {
@@ -190,10 +205,9 @@ const taskerStatus = computed(() => {
 
 async function newHomeAssistantTask() {
     newPluginType.value = HomeAssistantPlugin.createNewAction()
-    isNewPluginAction.value = true
+    state.value.editStatus = EditStatusEnum.AddPlugin
 
     const typeFormComponentEntry: PluginFormComponent = await newPluginType.value.getFormComponent()
-
     pluginModalComponent.value = typeFormComponentEntry
 }
 
@@ -203,39 +217,16 @@ async function deleteAction(index: number) {
     await refresh()
 }
 
-const cardExists = ref(false)
-onMounted(() => {
-    const checkCardExists = () => {
-        cardExists.value = !!document.querySelector('#actionMainCard')
-    }
-
-    // Initial check
-    checkCardExists()
-
-    // Create a MutationObserver to monitor DOM changes
-    const observer = new MutationObserver(() => {
-        checkCardExists() // Recheck whenever DOM changes
-    })
-
-    // Observe the body for changes
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-    })
-
-    // Cleanup the observer on unmount
-    onUnmounted(() => {
-        observer.disconnect()
-    })
-})
-
-const actionSettingForm = ref(false)
+async function openIndex(index: number) {
+    // go to same page with edit query parameter and remount
+    await router.push({ query: { edit: index } })
+}
 </script>
 
 <template :key="key">
     <MainLayout
         title="Task actions"
-        :loading="isBooting"
+        :loading="state.isBooting"
         v-if="actionModalComponent === null && pluginModalComponent === null"
     >
         <template v-slot:actions>
@@ -257,7 +248,7 @@ const actionSettingForm = ref(false)
             <div style="min-height: 200px">
                 <div class="list-group">
                     <draggable
-                        v-model="actionTypes"
+                        v-model="state.actionTypeRows"
                         group="people"
                         item-key="id"
                         handle=".action-row-reorder"
@@ -267,15 +258,9 @@ const actionSettingForm = ref(false)
                             <ActionRow
                                 v-bind="{ modelValue: element }"
                                 :key="randomKey()"
-                                @editAction="openActiontypeForm(element)"
+                                @editAction="openIndex(index)"
                                 @deleteAction="deleteAction(index)"
                                 @refresh="refresh"
-                                @editPlugin="
-                                    modalPlugin = {
-                                        actionTypeIndex: index,
-                                        pluginIndex: $event.index,
-                                    }
-                                "
                             />
                         </template>
                     </draggable>
@@ -304,7 +289,7 @@ const actionSettingForm = ref(false)
                 sm
                 :btn-class="'btn-secondary'"
                 icon-left="close"
-                @click="refresh()"
+                @click="router.push({ query: { edit: null } })"
             />
         </template>
         <template #default>
@@ -352,7 +337,7 @@ const actionSettingForm = ref(false)
                 :disabled="taskerClient.isRunning"
                 btn-class="btn-secondary"
                 icon-left="close"
-                @click="refresh()"
+                @click="router.push({ query: { edit: null } })"
             />
             <BaseButton
                 sm
@@ -369,7 +354,7 @@ const actionSettingForm = ref(false)
                     ref="actionForm"
                     validate-on="step"
                     :display-errors="false"
-                    :endpoint="onSubmit"
+                    :endpoint="submitBaseAction"
                     id="actionForm"
                 >
                     <component
@@ -377,44 +362,37 @@ const actionSettingForm = ref(false)
                         :is="actionModalComponent.component"
                         v-bind="actionModalComponent.props"
                     />
-
-                    <Teleport
-                        :disabled="!cardExists"
-                        :key="cardExists.toString()"
-                        to="#actionMainCard"
+                    <div
+                        id="actionSettingpane"
+                        class="settings-pane active"
+                        v-if="actionSettingForm"
                     >
-                        <div
-                            id="actionSettingpane"
-                            class="settings-pane active"
-                            v-if="actionSettingForm"
-                        >
-                            <div class="card h-100">
-                                <div class="card-header">
-                                    <div class="row">
-                                        <div
-                                            class="col-6 d-flex align-items-center justify-content-start weird-height"
-                                        >
-                                            <div class="button-space">
-                                                <BaseButton
-                                                    btnClass="btn-outline-secondary me-2"
-                                                    sm
-                                                    icon-left="arrow-left"
-                                                    @click="actionSettingForm = false"
-                                                />
-                                            </div>
-                                            <h5 class="card-title">Settings</h5>
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <div class="row">
+                                    <div
+                                        class="col-6 d-flex align-items-center justify-content-start weird-height"
+                                    >
+                                        <div class="button-space">
+                                            <BaseButton
+                                                btnClass="btn-outline-secondary me-2"
+                                                sm
+                                                icon-left="arrow-left"
+                                                @click="actionSettingForm = false"
+                                            />
                                         </div>
-                                        <div
-                                            class="col-6 d-flex align-items-center justify-content-end weird-height"
-                                        >
-                                            <!-- actions -->
-                                        </div>
+                                        <h5 class="card-title">Settings</h5>
+                                    </div>
+                                    <div
+                                        class="col-6 d-flex align-items-center justify-content-end weird-height"
+                                    >
+                                        <!-- actions -->
                                     </div>
                                 </div>
-                                <div class="card-body">Komt later..</div>
                             </div>
+                            <div class="card-body">Komt later..</div>
                         </div>
-                    </Teleport>
+                    </div>
                 </Vueform>
             </div>
         </template>
