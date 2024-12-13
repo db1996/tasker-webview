@@ -123,10 +123,15 @@ export default class HomeAssistantPlugin extends BasePlugin {
 
         actionType.params.url = url
         actionType.params.method_type = MethodType.POST
-        actionType.params.body = JSON.stringify({
-            entity_id: this.serviceData.entity_id,
-            ...this.serviceData.data,
-        })
+
+        if (this.serviceData.entity_id !== '') {
+            actionType.params.body = JSON.stringify({
+                entity_id: this.serviceData.entity_id,
+                ...this.serviceData.data,
+            })
+        } else {
+            actionType.params.body = JSON.stringify({ ...this.serviceData.data })
+        }
 
         this.actionType.setArgs()
     }
