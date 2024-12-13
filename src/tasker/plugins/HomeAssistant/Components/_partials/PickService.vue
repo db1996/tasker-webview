@@ -1,6 +1,6 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script lang="ts" setup>
-import { onMounted, ref, watch, type PropType } from 'vue'
+import { onMounted, ref, type PropType } from 'vue'
 import type HomeAssistantPlugin from '../../HomeAssistantPlugin'
 import MdiIcon from '@/components/MdiIcon.vue'
 import type { HaService } from '../../types/HaService'
@@ -61,12 +61,12 @@ const domainOrder = {
     },
 }
 const client = props.modelValue?.client
-
-const currentDomain = ref('')
-const currentDomainChanging = ref(false)
 const services = ref<HaService[] | null>(null)
 const resultServices = ref<HaService[] | null>(null)
 const domainCards = ref<DomainCard[]>([])
+
+const searchInp = ref<HTMLInputElement | null>(null)
+const searchDomainInp = ref<HTMLInputElement | null>(null)
 
 onMounted(async () => {
     const servicesData = await client?.getServices()
@@ -78,7 +78,12 @@ onMounted(async () => {
 })
 
 function initDefaultCards() {
-    currentDomain.value = ''
+    if (searchDomainInp.value) {
+        searchDomainInp.value.value = ''
+    }
+    if (searchInp.value) {
+        searchInp.value.value = ''
+    }
     domainCards.value = []
     forEach(domainOrder, (value, key) => {
         const domainCard = new DomainCard()
@@ -90,21 +95,22 @@ function initDefaultCards() {
     })
 }
 
-function searchServices(search_str: string) {
-    console.log(search_str)
-    if (search_str.length === 0) {
+function searchServices() {
+    if (!searchInp.value || !searchDomainInp.value) {
         initDefaultCards()
         return
     }
 
+    const search_str = searchInp.value.value
+    const domainSearch = searchDomainInp.value.value
     const domainOrderKeys = Object.keys(domainOrder).filter((key) => key !== 'other')
     domainCards.value = []
     forEach(services.value, (domainServices) => {
         if (
-            domainServices.domain === currentDomain.value ||
-            (currentDomain.value === 'other' &&
-                !domainOrderKeys.includes(domainServices.domain ?? '')) ||
-            currentDomain.value.length === 0
+            domainSearch === '' ||
+            domainServices.domain === domainSearch ||
+            (domainSearch === 'other' && !domainOrderKeys.includes(domainServices.domain ?? '')) ||
+            domainSearch.length === 0
         ) {
             forEach(domainServices.services, (service, key) => {
                 const domainCard = new DomainCard()
@@ -133,114 +139,58 @@ function searchServices(search_str: string) {
     })
 }
 
-function domainInputChanged(domain: string) {
-    forEach(services.value, (domainServices) => {
-        if (domainServices.domain === domain) {
-            currentDomain.value = domain
-        }
-    })
-}
-
 function clickCard(domainCard: DomainCard) {
     domainCards.value = []
     if (domainCard.service) {
         emit('picked', { domain: domainCard.domain, service: domainCard.service })
     } else {
-        currentDomain.value = domainCard.domain
+        if (!searchDomainInp.value) return
+        searchDomainInp.value.value = domainCard.domain
+        searchServices()
     }
 }
-watch(currentDomain, (newDomain) => {
-    currentDomainChanging.value = true
-    if (newDomain !== 'other') {
-        forEach(services.value, (domainServices) => {
-            if (domainServices.domain === newDomain) {
-                domainCards.value = []
-                forEach(domainServices.services, (service, key) => {
-                    const domainCard = new DomainCard()
-                    domainCard.domain = domainServices.domain ?? ''
-                    domainCard.name = service.name ?? ''
-                    forEach(domainOrder, (value, key) => {
-                        if (key === domainServices.domain) {
-                            domainCard.icon = value.icon
-                        }
-                    })
-                    domainCard.description = service.description ?? ''
-                    domainCard.service = key.toString()
-
-                    domainCards.value.push(domainCard)
-                })
-            }
-        })
-    } else {
-        const keystoCheck = domainCards.value.map((card) => card.domain)
-        domainCards.value = []
-        forEach(services.value, (domainServices) => {
-            if (!keystoCheck.includes(domainServices.domain ?? '')) {
-                const domainCard = new DomainCard()
-                domainCard.domain = domainServices.domain ?? ''
-                domainCard.name = domainServices.domain ?? ''
-
-                domainCards.value.push(domainCard)
-            }
-        })
-    }
-
-    setTimeout(() => {
-        currentDomainChanging.value = false
-    }, 1)
-})
 </script>
 <template>
-    <GroupElement name="containerSearch">
-        <TextElement
-            :submit="false"
-            name="search"
-            label="Search"
-            @change="searchServices"
-            :default="''"
-            :columns="{
-                default: 5,
-            }"
-        />
-        <TextElement
-            v-if="!currentDomainChanging"
-            :submit="false"
-            name="domainFilter"
-            v-model="currentDomain"
-            :default="currentDomain"
-            label="Domain"
-            @change="domainInputChanged"
-            :columns="{
-                default: 5,
-            }"
-        />
-        <ButtonElement
-            name="backButton"
-            label="Empty"
-            @click="initDefaultCards"
-            secondary
-            :columns="{
-                default: 1,
-            }"
-        >
-            <MdiIcon icon="close" />
-        </ButtonElement>
-
-        <ButtonElement
-            name="backButton"
-            label="Back"
-            @click="$emit('stop')"
-            secondary
-            :columns="{
-                default: 1,
-            }"
-        >
-            <MdiIcon icon="arrow-left" />
-        </ButtonElement>
-    </GroupElement>
+    <div class="row">
+        <div class="col-6">
+            <div class="input-group mb-3">
+                <input
+                    ref="searchInp"
+                    type="text"
+                    class="form-control"
+                    name="search"
+                    placeholder="Search"
+                    @input="searchServices"
+                />
+                <span class="input-group-text" id="basic-addon1">Search</span>
+            </div>
+        </div>
+        <div class="col-5">
+            <div class="input-group mb-3">
+                <input
+                    ref="searchDomainInp"
+                    type="text"
+                    class="form-control"
+                    name="domain"
+                    placeholder="Domain"
+                    @input="searchServices"
+                />
+                <span class="input-group-text" id="basic-addon1">Domain</span>
+            </div>
+        </div>
+        <div class="col-1">
+            <BaseButton
+                @click="initDefaultCards"
+                :btn-class="'btn-secondary'"
+                icon-left="close"
+                v-tooltip
+                data-title="Empty search"
+            />
+        </div>
+    </div>
     <StaticElement name="">
         <template #default>
-            <ul class="list-group">
+            <ul class="list-group mt-2">
                 <li
                     class="list-group-item hover-active"
                     v-for="(value, key) in domainCards"

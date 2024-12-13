@@ -17,7 +17,7 @@ import { EditStatusEnum } from '@/helpers/homeView/EditStatusEnum'
 const taskerClient = useTaskerClient().taskerClient
 const route = useRoute()
 const state = ref<HomeViewState>(new HomeViewState())
-const editForm = ref()
+const editForm$ = ref(null)
 const actionSettingForm = ref(false)
 const isBooting = ref(true)
 
@@ -69,6 +69,7 @@ const urlParams = computed(() => {
 onMounted(async () => {
     await state.value.refresh()
     await checkEditParam(false)
+
     isBooting.value = false
 })
 
@@ -131,6 +132,17 @@ async function newHomeAssistantTask() {
     const typeFormComponentEntry: PluginFormComponent =
         await state.value.newBasePlugin.getFormComponent()
     state.value.pluginFormComponent = typeFormComponentEntry
+}
+
+function setFormValue(val: { key: string; value: string }) {
+    if (editForm$.value === null) {
+        return
+    }
+
+    const field = editForm$.value.el$(val.key)
+    if (field) {
+        field.update(val.value)
+    }
 }
 </script>
 
@@ -199,7 +211,7 @@ async function newHomeAssistantTask() {
             <BaseButton
                 btn-class="btn-primary m-2"
                 sm
-                @click="editForm.submit()"
+                @click="editForm$?.submit()"
                 icon-left="content-save"
                 :checkrunning="true"
             />
@@ -221,11 +233,11 @@ async function newHomeAssistantTask() {
         </template>
         <template #default>
             <Vueform
-                ref="editForm"
+                ref="editForm$"
                 validate-on="step"
                 :display-errors="false"
                 :endpoint="submitForm"
-                id="editForm"
+                id="editForm$"
             >
                 <component
                     v-if="
@@ -234,7 +246,8 @@ async function newHomeAssistantTask() {
                             state.editStatus === EditStatusEnum.AddPlugin)
                     "
                     :is="state.pluginFormComponent.component"
-                    v-bind="state.pluginFormComponent.props"
+                    @update-form-value="setFormValue"
+                    v-bind="{ ...state.pluginFormComponent.props }"
                 />
                 <component
                     v-if="

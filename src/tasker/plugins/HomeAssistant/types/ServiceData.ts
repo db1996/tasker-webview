@@ -6,4 +6,16 @@ export default class ServiceData {
     service: string | null = null
     entity_id: string | null = null
     data: object | null = null
+
+    setEntityId(entity_id: string) {
+        this.entity_id = entity_id
+    }
+
+    setService(service: string) {
+        this.service = service
+    }
+
+    setDomain(domain: string) {
+        this.domain = domain
+    }
 }
