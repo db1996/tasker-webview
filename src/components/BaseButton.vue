@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import type { PropType, ButtonHTMLAttributes } from 'vue'
 import { RouterLink } from 'vue-router'
 import MdiIcon from './MdiIcon.vue'
+import { useTaskerClient } from '@/stores/useTaskerClient'
+
+const taskerClient = useTaskerClient().taskerClient
 
 const props = defineProps({
     type: {
@@ -31,6 +34,10 @@ const props = defineProps({
         default: '',
     },
     data: Object,
+    checkrunning: {
+        type: Boolean,
+        default: false,
+    },
 })
 
 const computedClass = computed(() => {
@@ -52,6 +59,19 @@ const computedClass = computed(() => {
 
     return btnClasses.join(' ')
 })
+
+const overwriteDisabled = ref(props.loading)
+
+onMounted(() => {
+    if (props.checkrunning) {
+        watch(
+            () => taskerClient.isRunning, // Use a function to track `route.query.edit`
+            () => {
+                overwriteDisabled.value = taskerClient.isRunning
+            },
+        )
+    }
+})
 </script>
 
 <template>
@@ -62,7 +82,7 @@ const computedClass = computed(() => {
         :class="computedClass"
         :method="method"
         :data="data"
-        :disabled="loading || disabled"
+        :disabled="loading || overwriteDisabled"
     >
         <MdiIcon v-show="!loading" :icon="iconLeft" :class="iconLeftMargin" />
         <MdiIcon v-show="loading" icon="loading" spin />
@@ -80,7 +100,7 @@ const computedClass = computed(() => {
         :type="props.type"
         class="btn"
         :class="computedClass"
-        :disabled="loading || disabled"
+        :disabled="loading || overwriteDisabled"
     >
         <MdiIcon v-show="!loading" :icon="iconLeft" :class="iconLeftMargin" />
         <MdiIcon v-show="loading" icon="loading" spin />

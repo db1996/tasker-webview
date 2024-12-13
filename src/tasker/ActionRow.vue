@@ -9,7 +9,8 @@ import { useTaskerClient } from '@/stores/useTaskerClient'
 
 const taskerClient = useTaskerClient().taskerClient
 
-const emit = defineEmits(['editAction', 'editPlugin', 'deleteAction', 'refresh'])
+const emit = defineEmits(['editAction', 'editPlugin', 'refresh'])
+
 const props = defineProps({
     modelValue: {
         type: Object as PropType<BaseActionType>,
@@ -55,6 +56,7 @@ const editType = computed(() => {
             btnClass: 'btn-success',
             tooltip: 'Edit through plugin: ' + props.modelValue.supported_plugins[0].name,
             icon: props.modelValue.supported_plugins[0].icon,
+            plugin: props.modelValue.supported_plugins[0].index,
         }
     }
     switch (props.modelValue.supportedType) {
@@ -64,6 +66,7 @@ const editType = computed(() => {
                 btnClass: 'btn-secondary',
                 tooltip: 'No custom form yet, edit the arguments directly',
                 icon: 'pencil',
+                plugin: null,
             }
 
         default:
@@ -72,18 +75,29 @@ const editType = computed(() => {
                 btnClass: 'btn-primary',
                 tooltip: 'Custom form available, more customized editing',
                 icon: 'pencil',
+                plugin: null,
             }
     }
 })
 
-function mainEditClick() {
-    emit('editAction', props.modelValue.index)
+function editClick(plugin: number | null = null) {
+    if (plugin !== null) {
+        emit('editPlugin', plugin)
+        return
+    }
+
+    emit('editAction')
 }
 
 async function saveLabel() {
     const label = document.querySelector('.input-group input') as HTMLInputElement
     await taskerClient.saveLabel(props.modelValue.index, label.value)
     editLabel.value = false
+    emit('refresh')
+}
+
+async function deleteAction() {
+    await taskerClient.deleteAction(props.modelValue.index)
     emit('refresh')
 }
 </script>
@@ -126,6 +140,7 @@ async function saveLabel() {
                                 btn-class="btn-outline-primary"
                                 v-if="editLabel"
                                 icon-left="content-save"
+                                :checkrunning="true"
                                 @click="saveLabel"
                             />
                         </div>
@@ -137,13 +152,15 @@ async function saveLabel() {
                             :data-title="editType.tooltip"
                             :btn-class="editType.btnClass"
                             :icon-left="editType.icon"
+                            :checkrunning="true"
                             class="me-2"
-                            @click="mainEditClick"
+                            @click="editClick(editType.plugin)"
                         />
                         <BaseButton
-                            @click="$emit('deleteAction')"
+                            @click="deleteAction"
                             sm
                             v-tooltip
+                            :checkrunning="true"
                             data-title="Delete action"
                             btn-class="btn-outline-danger"
                             icon-left="trash-can"
