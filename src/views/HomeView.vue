@@ -119,7 +119,6 @@ async function newHomeAssistantTask() {
 
     const typeFormComponentEntry = await state.value.newBasePlugin.getFormComponent()
     state.value.pluginFormComponent = typeFormComponentEntry
-    state.value.content_height = typeFormComponentEntry.props.modelValue.actionType.content_height
 }
 
 function setFormValue(val: { key: string; value: string }) {
