@@ -147,12 +147,12 @@ export default class HomeAssistantPlugin extends BasePlugin {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const convertedValue: any = JSON.parse(value) ?? null
                     const arValues = convertedValue as number[] | string[]
+
                     if (arValues !== null && arValues.length > 0) {
                         data[key] = arValues
                     }
-                } catch (error) {
-                    console.log('no json', error)
-                }
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                } catch (error) {}
             })
         }
         actionType.params.body = JSON.stringify(data)
