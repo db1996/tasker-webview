@@ -17,12 +17,13 @@ import { EditStatusEnum } from '@/helpers/homeView/EditStatusEnum'
 const taskerClient = useTaskerClient().taskerClient
 const route = useRoute()
 const state = ref<HomeViewState>(new HomeViewState())
-const editForm$ = ref(null)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const editForm$ = ref<any>()
 const actionSettingForm = ref(false)
 const isBooting = ref(true)
 
 watch(
-    () => route.query.edit, // Use a function to track `route.query.edit`
+    () => route.query.edit,
     async () => checkEditParam(),
 )
 
