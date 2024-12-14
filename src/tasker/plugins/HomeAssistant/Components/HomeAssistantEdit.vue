@@ -165,14 +165,14 @@ async function servicePicked(pickedData: { domain: string; service: string }) {
                             default: 1,
                         }"
                         :align="'right'"
-                        :info="index === 0 ? 'Toggle this field' : ''"
+                        :info="index === 0 ? 'Send this field in the data' : ''"
+                        :label="index === 0 ? 'Set' : ''"
                         :default="
                             modelValue?.serviceData.data &&
                             modelValue?.serviceData.data[field.id] !== undefined
                                 ? true
                                 : field.required
                         "
-                        label="&nbsp;"
                     />
                     <TextElement
                         v-if="field.type === HaServiceFieldType.TEXT"
