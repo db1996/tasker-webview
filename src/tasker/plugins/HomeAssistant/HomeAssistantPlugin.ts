@@ -2,7 +2,7 @@ import { markRaw } from 'vue'
 import HomeAssistantEdit from './Components/HomeAssistantEdit.vue'
 import BaseActionType from '@/tasker/actionTypes/BaseActionType'
 import BasePlugin from '@/tasker/plugins/BasePlugin'
-import type { PluginFormComponent } from '@/tasker/plugins/PluginFormComponent'
+import type { PluginFormComponent } from '@/tasker/ComponentTypes/PluginFormComponent'
 import { HomeAssistantClient } from './HomeAssistantClient'
 import ServiceData from './types/ServiceData'
 import { forEach } from 'lodash'
@@ -14,7 +14,7 @@ export default class HomeAssistantPlugin extends BasePlugin {
     name: string = 'Home Assistant'
     icon: string = 'home-assistant'
 
-    client: HomeAssistantClient = new HomeAssistantClient()
+    static client: HomeAssistantClient = new HomeAssistantClient()
     serviceData: ServiceData = new ServiceData()
 
     static taskerReplaceUrl: string = ''
@@ -22,17 +22,18 @@ export default class HomeAssistantPlugin extends BasePlugin {
 
     constructor(actionType: BaseActionType) {
         super(actionType)
+        actionType.content_height = '550px'
 
         if (HomeAssistantPlugin.taskerReplaceUrl === '') {
             let envToken = import.meta.env.VITE_HOMEASSISTANT_TASKER_TOKEN
             if (typeof envToken !== 'string' || envToken.length === 0) {
-                envToken = this.client.accessToken
+                envToken = HomeAssistantPlugin.client.accessToken
             }
             HomeAssistantPlugin.taskerReplaceToken = envToken
 
             let taskerReplaceUrl = import.meta.env.VITE_HOMEASSISTANT_TASKER_URL
             if (typeof taskerReplaceUrl !== 'string' || taskerReplaceUrl.length === 0) {
-                taskerReplaceUrl = this.client.baseUrl
+                taskerReplaceUrl = HomeAssistantPlugin.client.baseUrl
             }
             HomeAssistantPlugin.taskerReplaceUrl = taskerReplaceUrl
         }
@@ -45,7 +46,7 @@ export default class HomeAssistantPlugin extends BasePlugin {
                 actionType.params.method_type === MethodType.POST &&
                 ((HomeAssistantPlugin.taskerReplaceUrl !== '' &&
                     actionType.params.url.startsWith(HomeAssistantPlugin.taskerReplaceUrl)) ||
-                    actionType.params.url.startsWith(this.client.baseUrl))
+                    actionType.params.url.startsWith(HomeAssistantPlugin.client.baseUrl))
             ) {
                 const body = JSON.parse(actionType.params.body)
                 this.serviceData = HomeAssistantPlugin.urlToServiceData(actionType.params.url, body)
@@ -74,20 +75,32 @@ export default class HomeAssistantPlugin extends BasePlugin {
         follow_redirects?: boolean
         use_cookies?: boolean
         structure_output?: boolean
+        dataContainer?: Record<string, { toggle: boolean; value: string }>
     }): boolean {
         this.serviceData.domain = values.domain
         this.serviceData.service = values.service
         this.serviceData.entity_id = values.entity
-        if (values.data !== '') {
-            try {
-                this.serviceData.data = JSON.parse(values.data)
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (e) {
-                this.serviceData.data = null
+
+        if (values.dataContainer !== undefined) {
+            this.serviceData.data = {}
+            if (this.serviceData.data !== null) {
+                forEach(values.dataContainer, (value, key) => {
+                    if (value.toggle && this.serviceData.data !== null) {
+                        this.serviceData.data[key] = value.value
+                    }
+                })
             }
-        } else {
-            this.serviceData.data = null
         }
+        // if (values.data !== '') {
+        //     try {
+        //         this.serviceData.data = JSON.parse(values.data)
+        //         // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        //     } catch (e) {
+        //         this.serviceData.data = null
+        //     }
+        // } else {
+        //     this.serviceData.data = null
+        // }
         if (this.realActionType !== null) {
             if (values.hasOwnProperty('timeout')) {
                 this.realActionType.params.timeout = values.timeout as number
@@ -113,21 +126,36 @@ export default class HomeAssistantPlugin extends BasePlugin {
     setArgs(): void {
         const actionType = this.actionType as HttpRequestActionType
 
-        let url = this.client.buildUrl(
+        let url = HomeAssistantPlugin.client.buildUrl(
             '/api/services/' + this.serviceData.domain + '/' + this.serviceData.service,
         )
 
-        url = url.replace(this.client.baseUrl, HomeAssistantPlugin.taskerReplaceUrl)
+        url = url.replace(HomeAssistantPlugin.client.baseUrl, HomeAssistantPlugin.taskerReplaceUrl)
 
         this.setHeaders()
 
         actionType.params.url = url
         actionType.params.method_type = MethodType.POST
-        actionType.params.body = JSON.stringify({
-            entity_id: this.serviceData.entity_id,
-            ...this.serviceData.data,
-        })
-
+        const data: Record<string, string | Array<unknown>> = {}
+        if (this.serviceData.entity_id !== '' && this.serviceData.entity_id !== null) {
+            data['entity_id'] = this.serviceData.entity_id
+        }
+        if (this.serviceData.data !== null) {
+            forEach(this.serviceData.data, (value, key) => {
+                data[key] = value as string
+                try {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const convertedValue: any = JSON.parse(value) ?? null
+                    const arValues = convertedValue as number[]
+                    if (arValues !== null && arValues.length > 0) {
+                        data[key] = arValues
+                    }
+                } catch (error) {
+                    console.log('no json', error)
+                }
+            })
+        }
+        actionType.params.body = JSON.stringify(data)
         this.actionType.setArgs()
     }
 
@@ -142,17 +170,16 @@ export default class HomeAssistantPlugin extends BasePlugin {
     }
 
     static urlToServiceData(url: string, body: object | null = null): ServiceData {
-        const client: HomeAssistantClient = new HomeAssistantClient()
         const urlServiceData = new ServiceData()
 
         if (
             !url.startsWith(HomeAssistantPlugin.taskerReplaceUrl) &&
-            !url.startsWith(client.baseUrl)
+            !url.startsWith(HomeAssistantPlugin.client.baseUrl)
         ) {
             return urlServiceData
         }
 
-        url.replace(HomeAssistantPlugin.taskerReplaceUrl, client.baseUrl)
+        url.replace(HomeAssistantPlugin.taskerReplaceUrl, HomeAssistantPlugin.client.baseUrl)
 
         url = url.replace('http://', '').replace('https://', '')
 
@@ -167,12 +194,16 @@ export default class HomeAssistantPlugin extends BasePlugin {
                 urlServiceData.service = urlParts[4]
 
                 if (body !== null) {
-                    const data: { [key: string]: unknown } = {}
+                    const data: Record<string, string> = {}
                     forEach(body, (value, key) => {
                         if (key === 'entity_id') {
                             urlServiceData.entity_id = value
                         } else {
-                            data[key] = value
+                            if (typeof value === 'string') {
+                                data[key] = value
+                            } else {
+                                data[key] = JSON.stringify(value)
+                            }
                         }
                     })
                     if (Object.keys(data).length > 0) urlServiceData.data = data

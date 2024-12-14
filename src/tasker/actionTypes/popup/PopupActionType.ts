@@ -1,7 +1,7 @@
 import PopupForm from './PopupForm.vue'
 import { markRaw } from 'vue'
 import BaseActionType from '@/tasker/actionTypes/BaseActionType'
-import type { ActiontypeFormComponent } from '@/tasker/actionTypes/ActiontypeFormComponent'
+import type { ActiontypeFormComponent } from '@/tasker/ComponentTypes/ActiontypeFormComponent'
 import type Action from '@/tasker/types/Action'
 
 export default class PopupActionType extends BaseActionType {
@@ -10,6 +10,7 @@ export default class PopupActionType extends BaseActionType {
     name: string = 'Popup'
     message: string = ''
     modal_width: string = 'col-md-6'
+    show_args: boolean = false
 
     constructor(action: Action) {
         super(action)

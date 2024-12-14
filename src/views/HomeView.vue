@@ -1,109 +1,62 @@
 <script setup lang="ts">
 import BaseButton from '@/components/BaseButton.vue'
 import MainLayout from '@/layouts/MainLayout.vue'
-import { ActionTypeManager } from '@/tasker/helpers/ActionTypeManager'
-import type { ActiontypeFormComponent } from '@/tasker/actionTypes/ActiontypeFormComponent'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { TaskerClientStatus } from '@/tasker/enums/TaskerClientStatus'
-import type BaseActionType from '@/tasker/actionTypes/BaseActionType'
-import { forEach } from 'lodash'
-import ActionRow from '@/tasker/ActionRow.vue'
-import type { PluginFormComponent } from '@/tasker/plugins/PluginFormComponent'
+import ActionRow from '@/tasker/Views/ActionRow.vue'
 import HomeAssistantPlugin from '@/tasker/plugins/HomeAssistant/HomeAssistantPlugin'
-import type BasePlugin from '@/tasker/plugins/BasePlugin'
 import { useTaskerClient } from '@/stores/useTaskerClient'
+import HomeViewState from '@/helpers/homeView/HomeViewState'
+import router from '@/router'
+import { useRoute } from 'vue-router'
+import { EditStatusEnum } from '@/helpers/homeView/EditStatusEnum'
+import EditSettings from '@/tasker/Views/EditSettings.vue'
 
 const taskerClient = useTaskerClient().taskerClient
-
-const actionTypes = ref<BaseActionType[]>([])
-const taskerClientStatus = ref<TaskerClientStatus>(TaskerClientStatus.NONE)
-const modalPlugin = ref<{
-    actionTypeIndex: number | null
-    pluginIndex: number | null
-} | null>({
-    actionTypeIndex: null,
-    pluginIndex: null,
-})
-const actionForm = ref()
-const pluginForm = ref()
-const actionModalComponent = ref<ActiontypeFormComponent | null>(null)
-const pluginModalComponent = ref<PluginFormComponent | null>(null)
+const route = useRoute()
+const state = ref<HomeViewState>(new HomeViewState())
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const editForm$ = ref<any>()
 const isBooting = ref(true)
 
+watch(
+    () => route.query.edit,
+    async () => checkEditParam(),
+)
+
+async function checkEditParam(refreshNoEdit: boolean = true) {
+    state.value.urlParams = urlParams.value
+    if (urlParams.value.edit !== null) {
+        const actionIndex = urlParams.value.edit
+        const pluginIndex = urlParams.value.plugin
+        state.value.setEditAction(actionIndex, pluginIndex)
+    } else {
+        if (refreshNoEdit) {
+            await state.value.refresh()
+        }
+    }
+}
+
+const urlParams = computed(() => {
+    const params: { edit: number | null; plugin: number | null } = { edit: null, plugin: null }
+
+    if (route.query.plugin !== undefined && route.query.plugin !== null) {
+        params.plugin = parseFloat(route.query.plugin as string)
+    }
+    if (route.query.edit !== undefined && route.query.edit !== null) {
+        params.edit = parseFloat(route.query.edit as string)
+    }
+    return params
+})
+
 onMounted(async () => {
-    await refresh()
+    await state.value.refresh()
+    await checkEditParam(false)
+
     isBooting.value = false
 })
-
-onUnmounted(() => {
-    actionTypes.value = []
-})
-
-const isRefreshing = ref(false)
-async function refresh() {
-    // reload entire page
-    if (!isRefreshing.value) {
-        actionModalComponent.value = null
-        isNewPluginAction.value = false
-        isRefreshing.value = true
-        modalPlugin.value = null
-        await initActions()
-    }
-
-    isRefreshing.value = false
-}
-
-async function openActiontypeForm(actionType: BaseActionType) {
-    actionModalComponent.value = await actionType.getFormComponent()
-    modalPlugin.value = null
-}
-
-watch([modalPlugin, actionTypes], async () => {
-    if (
-        modalPlugin.value !== null &&
-        modalPlugin.value.actionTypeIndex !== null &&
-        modalPlugin.value.pluginIndex !== null &&
-        actionTypes.value[modalPlugin.value.actionTypeIndex] !== undefined &&
-        actionTypes.value[modalPlugin.value.actionTypeIndex].supported_plugins[
-            modalPlugin.value.pluginIndex
-        ] !== undefined
-    ) {
-        actionModalComponent.value = null
-        const typeFormComponentEntry: PluginFormComponent =
-            await actionTypes.value[modalPlugin.value.actionTypeIndex].supported_plugins[
-                modalPlugin.value.pluginIndex
-            ].getFormComponent()
-
-        pluginModalComponent.value = typeFormComponentEntry
-    } else {
-        pluginModalComponent.value = null
-    }
-})
-
-async function initActions() {
-    taskerClientStatus.value = TaskerClientStatus.RETRIEVE
-
-    const actions = await taskerClient.getActions()
-    if (actions != null) {
-        const manager = new ActionTypeManager()
-        await manager.loadPlugins()
-        await manager.loadForms()
-        actionTypes.value = []
-        forEach(actions, async (action, index) => {
-            const baseActionType = manager.getFormForAction(action)
-            if (baseActionType != null) {
-                baseActionType.index = index
-                actionTypes.value.push(baseActionType)
-            }
-        })
-        taskerClientStatus.value = TaskerClientStatus.NONE
-    } else {
-        actionTypes.value = []
-        taskerClientStatus.value = TaskerClientStatus.ERROR
-    }
-}
 
 function randomKey() {
     return Math.random().toString(36).substring(7)
@@ -112,135 +65,79 @@ function randomKey() {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function reorderAction(event: any) {
     if (event.newIndex !== event.oldIndex) {
-        taskerClientStatus.value = TaskerClientStatus.UPLOAD
         await taskerClient.moveAction(event.oldIndex, event.newIndex)
-        await refresh()
+        await state.value.refresh()
     }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function onSubmit(FormData: any, form$: any) {
+async function submitForm(FormData: any, form$: any) {
     const data = form$.data
-    const actionType = actionModalComponent.value?.props.modelValue as BaseActionType
-    if (actionType) {
-        const resp = actionType.submitForm(data)
-        if (resp) {
-            await taskerClient.replaceAction(actionType)
-            await refresh()
-        }
-    }
-}
-
-const isNewPluginAction = ref(false)
-const newPluginType = ref<BasePlugin | null>(null)
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function submitPlugin(FormData: any, form$: any) {
-    const data = form$.data
-    if (!isNewPluginAction.value) {
-        const actionType = actionTypes.value[modalPlugin.value?.actionTypeIndex as number]
+    if (
+        state.value.editStatus == EditStatusEnum.EditPlugin &&
+        urlParams.value.edit !== null &&
+        urlParams.value.plugin !== null
+    ) {
+        const actionType = state.value.actionTypeRows[urlParams.value.edit]
         if (actionType) {
-            const plugin = actionType.supported_plugins[modalPlugin.value?.pluginIndex as number]
+            const plugin = actionType.supported_plugins[urlParams.value.plugin]
             const resp = plugin.submitForm(data)
+            state.value.currentAction?.submitDefaultSettingsForm(data)
             if (resp) {
                 plugin.setArgs()
                 await taskerClient.replaceAction(plugin.actionType)
-                await refresh()
+                await state.value.refresh()
             }
         }
-    } else if (newPluginType.value !== null) {
-        newPluginType.value.submitForm(data)
-        newPluginType.value.setArgs()
-        await taskerClient.insertActionLast(newPluginType.value.actionType)
-        await refresh()
+    } else if (
+        state.value.editStatus == EditStatusEnum.AddPlugin &&
+        state.value.newBasePlugin !== null
+    ) {
+        state.value.newBasePlugin.submitForm(data)
+        state.value.newBasePlugin?.actionType.submitDefaultSettingsForm(data)
+        state.value.newBasePlugin.setArgs()
+        await taskerClient.insertActionLast(state.value.newBasePlugin.actionType)
+    } else if (
+        state.value.editStatus == EditStatusEnum.EditAction &&
+        urlParams.value.edit !== null
+    ) {
+        const actionType = state.value.currentAction
+        if (actionType) {
+            const resp = actionType.submitForm(data)
+            const settingsRep = actionType.submitDefaultSettingsForm(data)
+            if (resp && settingsRep) {
+                await taskerClient.replaceAction(actionType)
+            }
+        }
     }
+    state.value.refresh()
 }
-
-const taskerStatus = computed(() => {
-    const ret = {
-        text: 'Up to date',
-        text_class: 'text-success',
-        icon: 'check',
-        spin: false,
-        tooltip: '',
-    }
-    switch (taskerClientStatus.value) {
-        case TaskerClientStatus.RETRIEVE:
-            ret.text = 'Retrieving tasks'
-            ret.icon = 'progress-download'
-            ret.text_class = 'text-warning'
-            break
-        case TaskerClientStatus.UPLOAD:
-            ret.text = 'Uploading tasks'
-            ret.icon = 'progress-upload'
-            ret.text_class = 'text-warning'
-            break
-        case TaskerClientStatus.ERROR:
-            ret.text = 'Error'
-            ret.text_class = 'text-danger'
-            ret.icon = 'alert'
-            ret.tooltip = taskerClient.error
-            break
-
-        default:
-            break
-    }
-    return ret
-})
 
 async function newHomeAssistantTask() {
-    newPluginType.value = HomeAssistantPlugin.createNewAction()
-    isNewPluginAction.value = true
+    state.value.newBasePlugin = HomeAssistantPlugin.createNewAction()
+    state.value.editStatus = EditStatusEnum.AddPlugin
 
-    const typeFormComponentEntry: PluginFormComponent = await newPluginType.value.getFormComponent()
-
-    pluginModalComponent.value = typeFormComponentEntry
+    const typeFormComponentEntry = await state.value.newBasePlugin.getFormComponent()
+    state.value.pluginFormComponent = typeFormComponentEntry
 }
 
-async function deleteAction(index: number) {
-    taskerClientStatus.value = TaskerClientStatus.UPLOAD
-    await taskerClient.deleteAction(index)
-    await refresh()
-}
-
-const cardExists = ref(false)
-onMounted(() => {
-    const checkCardExists = () => {
-        cardExists.value = !!document.querySelector('#actionMainCard')
+function setFormValue(val: { key: string; value: string }) {
+    if (editForm$.value === null) {
+        return
     }
 
-    // Initial check
-    checkCardExists()
-
-    // Create a MutationObserver to monitor DOM changes
-    const observer = new MutationObserver(() => {
-        checkCardExists() // Recheck whenever DOM changes
-    })
-
-    // Observe the body for changes
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-    })
-
-    // Cleanup the observer on unmount
-    onUnmounted(() => {
-        observer.disconnect()
-    })
-})
-
-const actionSettingForm = ref(false)
+    const field = editForm$.value.el$(val.key)
+    if (field) {
+        field.update(val.value)
+    }
+}
 </script>
 
 <template :key="key">
-    <MainLayout
-        title="Task actions"
-        :loading="isBooting"
-        v-if="actionModalComponent === null && pluginModalComponent === null"
-    >
+    <MainLayout title="Task actions" v-if="state.editStatus === EditStatusEnum.None">
         <template v-slot:actions>
-            <span class="text-small me-2">{{ taskerStatus.text }}</span>
-            <MdiIcon :icon="taskerStatus.icon" :class="[taskerStatus.text_class]" />
+            <span class="text-small me-2">{{ state.taskerStatus.text }}</span>
+            <MdiIcon :icon="state.taskerStatus.icon" :class="[state.taskerStatus.text_class]" />
             <BaseButton
                 btnClass="btn-primary ms-2"
                 sm
@@ -248,16 +145,20 @@ const actionSettingForm = ref(false)
                 @click="newHomeAssistantTask"
                 v-tooltip
                 data-title="Create action"
+                :checkrunning="true"
             />
         </template>
         <template #default>
-            <div class="alert alert-danger" v-if="taskerClientStatus === TaskerClientStatus.ERROR">
+            <div
+                class="alert alert-danger"
+                v-if="taskerClient.taskerClientStatus === TaskerClientStatus.ERROR"
+            >
                 {{ taskerClient.error }}
             </div>
             <div style="min-height: 200px">
                 <div class="list-group">
                     <draggable
-                        v-model="actionTypes"
+                        v-model="state.actionTypeRows"
                         group="people"
                         item-key="id"
                         handle=".action-row-reorder"
@@ -267,15 +168,11 @@ const actionSettingForm = ref(false)
                             <ActionRow
                                 v-bind="{ modelValue: element }"
                                 :key="randomKey()"
-                                @editAction="openActiontypeForm(element)"
-                                @deleteAction="deleteAction(index)"
-                                @refresh="refresh"
+                                @editAction="router.push({ query: { edit: index } })"
                                 @editPlugin="
-                                    modalPlugin = {
-                                        actionTypeIndex: index,
-                                        pluginIndex: $event.index,
-                                    }
+                                    router.push({ query: { edit: index, plugin: $event } })
                                 "
+                                @refresh="state.refresh"
                             />
                         </template>
                     </draggable>
@@ -284,137 +181,81 @@ const actionSettingForm = ref(false)
         </template>
     </MainLayout>
     <MainLayout
-        v-if="pluginModalComponent !== null"
-        :size="pluginModalComponent?.props.modelValue.modal_width"
-    >
-        <template #title>Edit Plugin: {{ pluginModalComponent?.props.modelValue.name }} </template>
-        <template v-slot:actions>
-            <span class="text-small me-2">{{ taskerStatus.text }}</span>
-            <MdiIcon :icon="taskerStatus.icon" :class="[taskerStatus.text_class]" />
-            <BaseButton
-                :btn-class="'btn-primary m-2'"
-                @click="pluginForm.submit()"
-                sm
-                icon-left="content-save"
-                :disabled="taskerClient.isRunning"
-                :loading="taskerClient.isRunning"
-            />
-            <BaseButton
-                :disabled="taskerClient.isRunning"
-                sm
-                :btn-class="'btn-secondary'"
-                icon-left="close"
-                @click="refresh()"
-            />
-        </template>
-        <template #default>
-            <Vueform
-                ref="pluginForm"
-                validate-on="step"
-                :display-errors="false"
-                :endpoint="submitPlugin"
-            >
-                <component
-                    v-if="pluginModalComponent"
-                    :is="pluginModalComponent.component"
-                    v-bind="pluginModalComponent.props"
-                />
-            </Vueform>
-        </template>
-    </MainLayout>
-
-    <MainLayout
-        v-if="actionModalComponent !== null"
-        :size="actionModalComponent?.props.modelValue.modal_width"
-        mainId="actionMainCard"
+        v-if="state.editStatus !== EditStatusEnum.None"
+        :size="state.actionTypeFormComponent?.props.modelValue.modal_width"
     >
         <template #title>
             Edit action:
             {{
-                actionModalComponent?.props.modelValue.name === ''
-                    ? actionModalComponent?.props.modelValue.tasker_name
-                    : actionModalComponent?.props.modelValue.name
+                state.actionTypeFormComponent?.props.modelValue.name === ''
+                    ? state.actionTypeFormComponent?.props.modelValue.tasker_name
+                    : state.actionTypeFormComponent?.props.modelValue.name
             }}
         </template>
         <template v-slot:actions>
-            <span class="text-small me-2">{{ taskerStatus.text }}</span>
-            <MdiIcon :icon="taskerStatus.icon" :class="[taskerStatus.text_class]" />
+            <span class="text-small me-2">{{ state.taskerStatus.text }}</span>
+            <MdiIcon :icon="state.taskerStatus.icon" :class="[state.taskerStatus.text_class]" />
             <BaseButton
                 btn-class="btn-primary m-2"
                 sm
-                @click="actionForm.submit()"
+                @click="editForm$?.submit()"
                 icon-left="content-save"
-                :disabled="taskerClient.isRunning"
-                :loading="taskerClient.isRunning"
+                :checkrunning="true"
             />
             <BaseButton
                 sm
                 :disabled="taskerClient.isRunning"
                 btn-class="btn-secondary"
                 icon-left="close"
-                @click="refresh()"
+                @click="state.refresh()"
             />
             <BaseButton
                 sm
-                :disabled="taskerClient.isRunning"
-                :btn-class="actionSettingForm ? 'btn-primary' : 'btn-outline-secondary'"
+                :checkrunning="true"
+                :btn-class="state.showSettings ? 'btn-primary' : 'btn-outline-secondary'"
                 class="ms-2"
                 icon-left="cog"
-                @click="actionSettingForm = !actionSettingForm"
+                @click="state.showSettings = !state.showSettings"
             />
         </template>
         <template #default>
-            <div class="high-index">
+            <div :style="{ height: state.content_height, overflowY: 'auto', overflowX: 'hidden' }">
                 <Vueform
-                    ref="actionForm"
+                    ref="editForm$"
                     validate-on="step"
                     :display-errors="false"
-                    :endpoint="onSubmit"
-                    id="actionForm"
+                    :endpoint="submitForm"
+                    id="editForm$"
                 >
                     <component
-                        v-if="actionModalComponent"
-                        :is="actionModalComponent.component"
-                        v-bind="actionModalComponent.props"
+                        v-if="
+                            state.pluginFormComponent &&
+                            (state.editStatus === EditStatusEnum.EditPlugin ||
+                                state.editStatus === EditStatusEnum.AddPlugin)
+                        "
+                        :class="{ 'd-none': state.showSettings }"
+                        :is="state.pluginFormComponent.component"
+                        @update-form-value="setFormValue"
+                        v-bind="{ ...state.pluginFormComponent.props }"
                     />
-
-                    <Teleport
-                        :disabled="!cardExists"
-                        :key="cardExists.toString()"
-                        to="#actionMainCard"
-                    >
-                        <div
-                            id="actionSettingpane"
-                            class="settings-pane active"
-                            v-if="actionSettingForm"
-                        >
-                            <div class="card h-100">
-                                <div class="card-header">
-                                    <div class="row">
-                                        <div
-                                            class="col-6 d-flex align-items-center justify-content-start weird-height"
-                                        >
-                                            <div class="button-space">
-                                                <BaseButton
-                                                    btnClass="btn-outline-secondary me-2"
-                                                    sm
-                                                    icon-left="arrow-left"
-                                                    @click="actionSettingForm = false"
-                                                />
-                                            </div>
-                                            <h5 class="card-title">Settings</h5>
-                                        </div>
-                                        <div
-                                            class="col-6 d-flex align-items-center justify-content-end weird-height"
-                                        >
-                                            <!-- actions -->
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-body">Komt later..</div>
-                            </div>
-                        </div>
-                    </Teleport>
+                    <component
+                        v-if="
+                            state.actionTypeFormComponent &&
+                            (state.editStatus === EditStatusEnum.EditAction ||
+                                state.editStatus === EditStatusEnum.AddAction)
+                        "
+                        :class="{ 'd-none': state.showSettings }"
+                        :is="state.actionTypeFormComponent.component"
+                        v-bind="state.actionTypeFormComponent.props"
+                    />
+                    <EditSettings
+                        v-if="state.currentAction"
+                        :class="{ 'd-none': !state.showSettings }"
+                        v-bind="{
+                            modelValue: state.currentAction,
+                            editSettingsForm: state.settingsFormComponent,
+                        }"
+                    />
                 </Vueform>
             </div>
         </template>

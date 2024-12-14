@@ -1,19 +1,23 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script lang="ts" setup>
 import { onMounted, ref, type PropType } from 'vue'
-import type HomeAssistantPlugin from '../../HomeAssistantPlugin'
+import HomeAssistantPlugin from '../../HomeAssistantPlugin'
 import type { HaEntity } from '../../types/HaEntity'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { forEach } from 'lodash'
+import { watch } from 'vue'
 
-defineEmits(['picked', 'stop'])
+const emits = defineEmits(['picked', 'stop'])
 
 const props = defineProps({
     modelValue: Object as PropType<HomeAssistantPlugin>,
-    domain: String,
+    domain: {
+        type: String,
+        default: '',
+    },
 })
 
-const client = props.modelValue?.client
+const client = HomeAssistantPlugin.client
 
 const entities = ref<HaEntity[] | null>(null)
 const resultEntities = ref<HaEntity[] | null>(null)
@@ -75,8 +79,12 @@ function getIcon(entity: HaEntity) {
 
     return ''
 }
+const searchInp = ref<HTMLInputElement | null>(null)
 
-function searchEntities(ev: string) {
+function searchEntities() {
+    if (!searchInp.value) return
+    const ev = searchInp.value.value
+
     resultEntities.value = []
     forEach(entities.value, (entity) => {
         let friendlyName = ''
@@ -93,40 +101,50 @@ function searchEntities(ev: string) {
         }
     })
 }
+
+function pick(entity: HaEntity) {
+    emits('picked', entity)
+
+    if (!searchInp.value) return
+    searchInp.value.value = ''
+}
+
+watch(
+    () => props.domain,
+    async (newVal) => {
+        const entitiesData = await client?.getEntities(newVal)
+        if (entitiesData) {
+            entities.value = entitiesData
+        }
+
+        resultEntities.value = entities.value
+    },
+)
 </script>
 <template>
-    <GroupElement name="containerSearch">
-        <StaticElement name="asdasdas" :columns="{
-            default: 2,
-        }" :align="'center'" tag="p" :content="'Domain: ' +  domain"/>
-        <TextElement
-            :submit="false"
-            name="search"
-            label="Search"
-            @change="searchEntities"
-            :default="''"
-            :columns="{
-                default: 9,
-            }"
-        />
-        <ButtonElement
-            name="backButton"
-            label="Back"
-            @click="$emit('stop')"
-            secondary
-            :columns="{
-                default: 1,
-            }"
-        >
-            <MdiIcon icon="arrow-left" />
-        </ButtonElement>
-    </GroupElement>
+    <div class="row">
+        <div class="col-2">
+            <p>Domain: {{ domain }}</p>
+        </div>
+        <div class="col-10">
+            <div class="input-group mb-3">
+                <input
+                    ref="searchInp"
+                    type="text"
+                    class="form-control"
+                    name="search"
+                    @input="searchEntities"
+                />
+                <span class="input-group-text" id="basic-addon1"><MdiIcon icon="magnify" /></span>
+            </div>
+        </div>
+    </div>
     <StaticElement name="">
         <template #default>
             <ul class="list-group">
                 <li
                     class="list-group-item hover-active"
-                    @click="() => $emit('picked', value)"
+                    @click="() => pick(value)"
                     v-for="(value, key) in resultEntities"
                     :key="key"
                 >

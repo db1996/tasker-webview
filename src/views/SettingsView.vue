@@ -3,12 +3,12 @@ import MainLayout from '@/layouts/MainLayout.vue'
 import { taskerStoreError } from '@/tasker/enums/taskerStoreError'
 import { computed, onMounted, ref } from 'vue'
 import MdiIcon from '@/components/MdiIcon.vue'
-import { HomeAssistantClient } from '@/tasker/plugins/HomeAssistant/HomeAssistantClient'
 import TaskerClient from '@/tasker/TaskerClient'
+import HomeAssistantPlugin from '@/tasker/plugins/HomeAssistant/HomeAssistantPlugin'
 
 const settingForm = ref()
 
-const homeAssistantClient = ref(new HomeAssistantClient())
+const homeAssistantClient = ref(HomeAssistantPlugin.client)
 const taskerClient = ref<TaskerClient>(new TaskerClient())
 
 onMounted(async () => {
@@ -96,11 +96,7 @@ const homeAssistantStatus = computed(() => {
 <template>
     <MainLayout title="Settings">
         <template #default>
-            <Vueform
-                ref="settingForm"
-                validate-on="change"
-                :display-errors="false"
-            >
+            <Vueform ref="settingForm" validate-on="change" :display-errors="false">
                 <StaticElement name="static">
                     <div class="row">
                         <div class="col d-flex">

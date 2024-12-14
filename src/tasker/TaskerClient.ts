@@ -2,11 +2,13 @@ import Action from './types/Action'
 import { taskerStoreError } from './enums/taskerStoreError'
 import { forEach } from 'lodash'
 import type BaseActionType from './actionTypes/BaseActionType'
+import { TaskerClientStatus } from './enums/TaskerClientStatus'
 
 export default class TaskerClient {
     url: string = ''
     ping: boolean = false
     error: taskerStoreError = taskerStoreError.NONE
+    taskerClientStatus: TaskerClientStatus = TaskerClientStatus.NONE
     isRunning: boolean = false
 
     public constructor() {
@@ -14,6 +16,7 @@ export default class TaskerClient {
 
         if (this.url.length === 0) {
             this.error = taskerStoreError.NO_URL
+            this.taskerClientStatus = TaskerClientStatus.ERROR
         }
     }
 
@@ -25,6 +28,7 @@ export default class TaskerClient {
     async pingTasker() {
         this.ping = false
 
+        this.taskerClientStatus = TaskerClientStatus.RETRIEVE
         try {
             const actions = await this.getActions()
             if (actions !== null) {
@@ -47,6 +51,7 @@ export default class TaskerClient {
 
     async getActions(): Promise<Array<Action> | null> {
         this.isRunning = true
+        this.taskerClientStatus = TaskerClientStatus.RETRIEVE
         try {
             const response = await fetch(this.url + '/actions')
             // const data = await response.json()
@@ -54,23 +59,27 @@ export default class TaskerClient {
             const actions: Array<Action> = await response.json()
             this.isRunning = false
             if (!Array.isArray(actions)) {
+                this.taskerClientStatus = TaskerClientStatus.NONE
                 return null
             }
 
             forEach(actions, (action, index) => {
                 action.index = index
             })
+            this.taskerClientStatus = TaskerClientStatus.NONE
             return actions
         } catch (e) {
             console.log('error caught', e)
             this.isRunning = false
             this.error = taskerStoreError.NO_CONNECT
+            this.taskerClientStatus = TaskerClientStatus.ERROR
             return null
         }
     }
 
     async moveAction(fromIndex: number, toIndex: number) {
         this.isRunning = true
+        this.taskerClientStatus = TaskerClientStatus.UPLOAD
         const urlParams = new URLSearchParams({
             from: fromIndex.toString(),
             to: toIndex.toString(),
@@ -88,16 +97,19 @@ export default class TaskerClient {
                 }
             })
             this.isRunning = false
+            this.taskerClientStatus = TaskerClientStatus.NONE
             return data
         } catch (e) {
             console.log('error caught', e)
             this.isRunning = false
+            this.taskerClientStatus = TaskerClientStatus.ERROR
             return null
         }
     }
 
     async saveLabel(index: number, label: string) {
         this.isRunning = true
+        this.taskerClientStatus = TaskerClientStatus.UPLOAD
         const urlParams = new URLSearchParams({
             index: index.toString(),
             value: label,
@@ -108,16 +120,19 @@ export default class TaskerClient {
         try {
             const data = await response.json()
             this.isRunning = false
+            this.taskerClientStatus = TaskerClientStatus.NONE
             return data
         } catch (e) {
             console.log('error caught', e)
             this.isRunning = false
+            this.taskerClientStatus = TaskerClientStatus.ERROR
             return null
         }
     }
 
     async replaceAction(actionType: BaseActionType) {
         this.isRunning = true
+        this.taskerClientStatus = TaskerClientStatus.UPLOAD
         actionType.setArgs()
 
         const tUrl = this.buildUrl('/actions')
@@ -129,16 +144,19 @@ export default class TaskerClient {
         try {
             const data = await response.json()
             this.isRunning = false
+            this.taskerClientStatus = TaskerClientStatus.NONE
             return data
         } catch (e) {
             console.log('error caught', e)
             this.isRunning = false
+            this.taskerClientStatus = TaskerClientStatus.ERROR
             return null
         }
     }
 
     async insertActionLast(actionType: BaseActionType) {
         this.isRunning = true
+        this.taskerClientStatus = TaskerClientStatus.UPLOAD
         actionType.setArgs()
 
         const tUrl = this.buildUrl('/actions')
@@ -153,22 +171,26 @@ export default class TaskerClient {
         try {
             const data = await response.json()
             this.isRunning = false
+            this.taskerClientStatus = TaskerClientStatus.NONE
             return data
         } catch (e) {
             console.log('error caught', e)
             this.isRunning = false
+            this.taskerClientStatus = TaskerClientStatus.ERROR
             return null
         }
     }
 
     async deleteAction(index: number): Promise<boolean> {
         this.isRunning = true
+        this.taskerClientStatus = TaskerClientStatus.UPLOAD
         try {
             const urlParams = new URLSearchParams({
                 index: index.toString(),
             })
             const tUrl = this.buildUrl('/delete', urlParams)
             const response = await fetch(tUrl, this.getOptions('GET'))
+            this.taskerClientStatus = TaskerClientStatus.NONE
             if (response.status === 200) {
                 this.error = taskerStoreError.OK
                 this.isRunning = false
@@ -178,6 +200,7 @@ export default class TaskerClient {
             console.log('error caught', e)
             this.error = taskerStoreError.NO_CONNECT
             this.isRunning = false
+            this.taskerClientStatus = TaskerClientStatus.ERROR
             return false
         }
 
@@ -186,13 +209,16 @@ export default class TaskerClient {
 
     async replaceAllActions(actionsTypes: Array<BaseActionType>) {
         // loop through the actions and replace them one by one
+        this.taskerClientStatus = TaskerClientStatus.UPLOAD
         for (let i = 0; i < actionsTypes.length; i++) {
             const actionType = actionsTypes[i]
             const response = await this.replaceAction(actionType)
             if (response === null) {
+                this.taskerClientStatus = TaskerClientStatus.NONE
                 return null
             }
         }
+        this.taskerClientStatus = TaskerClientStatus.NONE
     }
 
     public buildUrl(path: string, params: URLSearchParams | null = null): string {

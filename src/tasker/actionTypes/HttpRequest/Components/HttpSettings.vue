@@ -3,39 +3,38 @@ import type { PropType } from 'vue'
 import type HttpRequestActionType from '../HttpRequestActionType'
 
 defineProps({
-    HttpActionType: {
+    modelValue: {
         type: Object as PropType<HttpRequestActionType>,
-        required: false,
     },
 })
 </script>
 <template>
-    <GroupElement name="settingsForm" v-if="HttpActionType">
+    <GroupElement name="settingsForm">
         <TextElement
             name="timeout"
             label="Timeout (s)"
             input-type="number"
-            :default="HttpActionType.params.timeout"
+            :default="modelValue?.params.timeout"
         />
         <ToggleElement
             name="trust_any_certificate"
             label="Trust any certificate"
-            :default="HttpActionType.params.trust_any_certificate"
+            :default="modelValue?.params.trust_any_certificate"
         />
         <ToggleElement
             name="follow_redirects"
             label="Follow Redirects"
-            :default="HttpActionType.params.follow_redirects"
+            :default="modelValue?.params.follow_redirects"
         />
         <ToggleElement
             name="use_cookies"
             label="Use Cookies"
-            :default="HttpActionType.params.use_cookies"
+            :default="modelValue?.params.use_cookies"
         />
         <ToggleElement
             name="structure_output"
             label="Structure Output (JSON)"
-            :default="HttpActionType.params.structure_output"
+            :default="modelValue?.params.structure_output"
         />
     </GroupElement>
 </template>

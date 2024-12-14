@@ -17,11 +17,6 @@ const router = createRouter({
             // which is lazy-loaded when the route is visited.
             component: () => import('../views/SettingsView.vue'),
         },
-        {
-            path: '/edit',
-            name: 'edit',
-            component: () => import('../views/EditAction.vue'), // Ensure this component exists
-        },
         // {
         //     path: '/edit/:index',
         //     name: 'edit',

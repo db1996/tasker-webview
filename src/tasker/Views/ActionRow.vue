@@ -2,14 +2,15 @@
 import MdiIcon from '@/components/MdiIcon.vue'
 import { computed, ref, type PropType } from 'vue'
 import { forEach } from 'lodash'
-import type BaseActionType from './actionTypes/BaseActionType'
+import type BaseActionType from '@/tasker/actionTypes/BaseActionType'
 import BaseButton from '@/components/BaseButton.vue'
-import { ActionTypeSupportedType } from './enums/ActionTypeSupportedType'
+import { ActionTypeSupportedType } from '@/tasker/enums/ActionTypeSupportedType'
 import { useTaskerClient } from '@/stores/useTaskerClient'
 
 const taskerClient = useTaskerClient().taskerClient
 
-const emit = defineEmits(['editAction', 'editPlugin', 'deleteAction', 'refresh'])
+const emit = defineEmits(['editAction', 'editPlugin', 'refresh'])
+
 const props = defineProps({
     modelValue: {
         type: Object as PropType<BaseActionType>,
@@ -18,6 +19,7 @@ const props = defineProps({
 })
 
 const toggled = ref(false)
+const editLabel = ref(false)
 
 function toggleExpand() {
     if (toggled.value) {
@@ -40,6 +42,13 @@ const argsList = computed(() => {
     return strstr
 })
 
+const labelBg = computed(() => {
+    if (props.modelValue.action.label !== undefined) {
+        return 'bg-primary'
+    }
+    return 'bg-secondary'
+})
+
 const editType = computed(() => {
     if (props.modelValue.supported_plugins.length > 0) {
         return {
@@ -47,6 +56,7 @@ const editType = computed(() => {
             btnClass: 'btn-success',
             tooltip: 'Edit through plugin: ' + props.modelValue.supported_plugins[0].name,
             icon: props.modelValue.supported_plugins[0].icon,
+            plugin: props.modelValue.supported_plugins[0].index,
         }
     }
     switch (props.modelValue.supportedType) {
@@ -56,6 +66,7 @@ const editType = computed(() => {
                 btnClass: 'btn-secondary',
                 tooltip: 'No custom form yet, edit the arguments directly',
                 icon: 'pencil',
+                plugin: null,
             }
 
         default:
@@ -64,31 +75,29 @@ const editType = computed(() => {
                 btnClass: 'btn-primary',
                 tooltip: 'Custom form available, more customized editing',
                 icon: 'pencil',
+                plugin: null,
             }
     }
 })
 
-function mainEditClick() {
-    if (editType.value.type === 'plugin') {
-        emit('editPlugin', props.modelValue.supported_plugins[0])
-    } else {
-        emit('editAction', props.modelValue)
+function editClick(plugin: number | null = null) {
+    if (plugin !== null) {
+        emit('editPlugin', plugin)
+        return
     }
+
+    emit('editAction')
 }
-
-const editLabel = ref(false)
-
-const labelBg = computed(() => {
-    if (props.modelValue.action.label !== undefined) {
-        return 'bg-primary'
-    }
-    return 'bg-secondary'
-})
 
 async function saveLabel() {
     const label = document.querySelector('.input-group input') as HTMLInputElement
     await taskerClient.saveLabel(props.modelValue.index, label.value)
     editLabel.value = false
+    emit('refresh')
+}
+
+async function deleteAction() {
+    await taskerClient.deleteAction(props.modelValue.index)
     emit('refresh')
 }
 </script>
@@ -120,6 +129,7 @@ async function saveLabel() {
                                 v-if="editLabel"
                                 type="text"
                                 class="form-control"
+                                @keyup.enter="saveLabel"
                                 :value="
                                     modelValue.action.label !== undefined
                                         ? modelValue.action.label
@@ -130,6 +140,7 @@ async function saveLabel() {
                                 btn-class="btn-outline-primary"
                                 v-if="editLabel"
                                 icon-left="content-save"
+                                :checkrunning="true"
                                 @click="saveLabel"
                             />
                         </div>
@@ -141,13 +152,15 @@ async function saveLabel() {
                             :data-title="editType.tooltip"
                             :btn-class="editType.btnClass"
                             :icon-left="editType.icon"
+                            :checkrunning="true"
                             class="me-2"
-                            @click="mainEditClick"
+                            @click="editClick(editType.plugin)"
                         />
                         <BaseButton
-                            @click="$emit('deleteAction')"
+                            @click="deleteAction"
                             sm
                             v-tooltip
+                            :checkrunning="true"
                             data-title="Delete action"
                             btn-class="btn-outline-danger"
                             icon-left="trash-can"
