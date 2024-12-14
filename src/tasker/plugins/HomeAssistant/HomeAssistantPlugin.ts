@@ -146,7 +146,7 @@ export default class HomeAssistantPlugin extends BasePlugin {
                 try {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const convertedValue: any = JSON.parse(value) ?? null
-                    const arValues = convertedValue as number[]
+                    const arValues = convertedValue as number[] | string[]
                     if (arValues !== null && arValues.length > 0) {
                         data[key] = arValues
                     }
