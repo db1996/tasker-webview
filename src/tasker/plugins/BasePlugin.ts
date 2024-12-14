@@ -1,5 +1,5 @@
-import BaseActionType from './../actionTypes/BaseActionType'
-import type { PluginFormComponent } from './PluginFormComponent'
+import BaseActionType from '@/tasker/actionTypes/BaseActionType'
+import type { PluginFormComponent } from '@/tasker/ComponentTypes/PluginFormComponent'
 
 export default class BasePlugin {
     actionType: BaseActionType

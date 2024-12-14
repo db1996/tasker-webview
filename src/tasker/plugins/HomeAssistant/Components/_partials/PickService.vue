@@ -1,17 +1,14 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script lang="ts" setup>
-import { onMounted, ref, type PropType } from 'vue'
-import type HomeAssistantPlugin from '../../HomeAssistantPlugin'
+import { onMounted, ref } from 'vue'
+import HomeAssistantPlugin from '../../HomeAssistantPlugin'
 import MdiIcon from '@/components/MdiIcon.vue'
-import type { HaService } from '../../types/HaService'
+import type { HaDomainService } from '../../types/HaDomainService'
 import DomainCard from '../../types/DomainCard'
 import { capitalize, forEach } from 'lodash'
 import BaseButton from '@/components/BaseButton.vue'
 
 const emit = defineEmits(['picked', 'stop'])
-const props = defineProps({
-    modelValue: Object as PropType<HomeAssistantPlugin>,
-})
 
 const domainOrder = {
     light: {
@@ -60,9 +57,8 @@ const domainOrder = {
         other: true,
     },
 }
-const client = props.modelValue?.client
-const services = ref<HaService[] | null>(null)
-const resultServices = ref<HaService[] | null>(null)
+const client = HomeAssistantPlugin.client
+const services = ref<HaDomainService[] | null>(null)
 const domainCards = ref<DomainCard[]>([])
 
 const searchInp = ref<HTMLInputElement | null>(null)
@@ -74,7 +70,6 @@ onMounted(async () => {
         services.value = servicesData
     }
     initDefaultCards()
-    resultServices.value = services.value
 })
 
 function initDefaultCards() {
@@ -144,8 +139,10 @@ function clickCard(domainCard: DomainCard) {
     if (domainCard.service) {
         emit('picked', { domain: domainCard.domain, service: domainCard.service })
     } else {
-        if (!searchDomainInp.value) return
-        searchDomainInp.value.value = domainCard.domain
+        if (searchDomainInp.value) {
+            searchDomainInp.value.value = domainCard.domain
+        }
+
         searchServices()
     }
 }

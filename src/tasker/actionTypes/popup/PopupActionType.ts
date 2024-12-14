@@ -1,7 +1,7 @@
 import PopupForm from './PopupForm.vue'
 import { markRaw } from 'vue'
 import BaseActionType from '@/tasker/actionTypes/BaseActionType'
-import type { ActiontypeFormComponent } from '@/tasker/actionTypes/ActiontypeFormComponent'
+import type { ActiontypeFormComponent } from '@/tasker/ComponentTypes/ActiontypeFormComponent'
 import type Action from '@/tasker/types/Action'
 
 export default class PopupActionType extends BaseActionType {

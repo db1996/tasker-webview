@@ -5,21 +5,20 @@ import { computed, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { TaskerClientStatus } from '@/tasker/enums/TaskerClientStatus'
-import ActionRow from '@/tasker/ActionRow.vue'
-import type { PluginFormComponent } from '@/tasker/plugins/PluginFormComponent'
+import ActionRow from '@/tasker/Views/ActionRow.vue'
 import HomeAssistantPlugin from '@/tasker/plugins/HomeAssistant/HomeAssistantPlugin'
 import { useTaskerClient } from '@/stores/useTaskerClient'
 import HomeViewState from '@/helpers/homeView/HomeViewState'
 import router from '@/router'
 import { useRoute } from 'vue-router'
 import { EditStatusEnum } from '@/helpers/homeView/EditStatusEnum'
+import EditSettings from '@/tasker/Views/EditSettings.vue'
 
 const taskerClient = useTaskerClient().taskerClient
 const route = useRoute()
 const state = ref<HomeViewState>(new HomeViewState())
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const editForm$ = ref<any>()
-const actionSettingForm = ref(false)
 const isBooting = ref(true)
 
 watch(
@@ -28,26 +27,11 @@ watch(
 )
 
 async function checkEditParam(refreshNoEdit: boolean = true) {
+    state.value.urlParams = urlParams.value
     if (urlParams.value.edit !== null) {
         const actionIndex = urlParams.value.edit
         const pluginIndex = urlParams.value.plugin
-        const action = state.value.actionTypeRows[actionIndex]
-        if (pluginIndex !== null) {
-            const typeFormComponentEntry: PluginFormComponent =
-                await state.value.actionTypeRows[actionIndex].supported_plugins[
-                    pluginIndex
-                ].getFormComponent()
-
-            state.value.pluginFormComponent = typeFormComponentEntry
-            state.value.actionTypeFormComponent = null
-            state.value.editStatus = EditStatusEnum.EditPlugin
-        } else {
-            if (action) {
-                state.value.actionTypeFormComponent = await action.getFormComponent()
-                state.value.pluginFormComponent = null
-                state.value.editStatus = EditStatusEnum.EditAction
-            }
-        }
+        state.value.setEditAction(actionIndex, pluginIndex)
     } else {
         if (refreshNoEdit) {
             await state.value.refresh()
@@ -98,6 +82,7 @@ async function submitForm(FormData: any, form$: any) {
         if (actionType) {
             const plugin = actionType.supported_plugins[urlParams.value.plugin]
             const resp = plugin.submitForm(data)
+            state.value.currentAction?.submitDefaultSettingsForm(data)
             if (resp) {
                 plugin.setArgs()
                 await taskerClient.replaceAction(plugin.actionType)
@@ -109,29 +94,30 @@ async function submitForm(FormData: any, form$: any) {
         state.value.newBasePlugin !== null
     ) {
         state.value.newBasePlugin.submitForm(data)
+        state.value.newBasePlugin?.actionType.submitDefaultSettingsForm(data)
         state.value.newBasePlugin.setArgs()
         await taskerClient.insertActionLast(state.value.newBasePlugin.actionType)
     } else if (
         state.value.editStatus == EditStatusEnum.EditAction &&
         urlParams.value.edit !== null
     ) {
-        const actionType = state.value.actionTypeRows[urlParams.value.edit]
+        const actionType = state.value.currentAction
         if (actionType) {
             const resp = actionType.submitForm(data)
-            if (resp) {
+            const settingsRep = actionType.submitDefaultSettingsForm(data)
+            if (resp && settingsRep) {
                 await taskerClient.replaceAction(actionType)
             }
         }
     }
-    router.push({ query: {} })
+    state.value.refresh()
 }
 
 async function newHomeAssistantTask() {
     state.value.newBasePlugin = HomeAssistantPlugin.createNewAction()
     state.value.editStatus = EditStatusEnum.AddPlugin
 
-    const typeFormComponentEntry: PluginFormComponent =
-        await state.value.newBasePlugin.getFormComponent()
+    const typeFormComponentEntry = await state.value.newBasePlugin.getFormComponent()
     state.value.pluginFormComponent = typeFormComponentEntry
 }
 
@@ -221,78 +207,57 @@ function setFormValue(val: { key: string; value: string }) {
                 :disabled="taskerClient.isRunning"
                 btn-class="btn-secondary"
                 icon-left="close"
-                @click="router.push({ query: {} })"
+                @click="state.refresh()"
             />
             <BaseButton
                 sm
                 :checkrunning="true"
-                :btn-class="actionSettingForm ? 'btn-primary' : 'btn-outline-secondary'"
+                :btn-class="state.showSettings ? 'btn-primary' : 'btn-outline-secondary'"
                 class="ms-2"
                 icon-left="cog"
-                @click="actionSettingForm = !actionSettingForm"
+                @click="state.showSettings = !state.showSettings"
             />
         </template>
         <template #default>
-            <Vueform
-                ref="editForm$"
-                validate-on="step"
-                :display-errors="false"
-                :endpoint="submitForm"
-                id="editForm$"
-            >
-                <component
-                    v-if="
-                        state.pluginFormComponent !== null &&
-                        (state.editStatus === EditStatusEnum.EditPlugin ||
-                            state.editStatus === EditStatusEnum.AddPlugin)
-                    "
-                    :is="state.pluginFormComponent.component"
-                    @update-form-value="setFormValue"
-                    v-bind="{ ...state.pluginFormComponent.props }"
-                />
-                <component
-                    v-if="
-                        state.actionTypeFormComponent &&
-                        (state.editStatus === EditStatusEnum.EditAction ||
-                            state.editStatus === EditStatusEnum.AddAction)
-                    "
-                    :is="state.actionTypeFormComponent.component"
-                    v-bind="state.actionTypeFormComponent.props"
-                />
-                <StaticElement name="settingsPane">
-                    <div
-                        id="actionSettingpane"
-                        class="settings-pane"
-                        :class="{ active: actionSettingForm }"
-                    >
-                        <div class="card h-100">
-                            <div class="card-header">
-                                <div class="row">
-                                    <div
-                                        class="col-6 d-flex align-items-center justify-content-start weird-height"
-                                    >
-                                        <div class="button-space">
-                                            <BaseButton
-                                                btnClass="btn-outline-secondary me-2"
-                                                sm
-                                                icon-left="close"
-                                                @click="actionSettingForm = false"
-                                            />
-                                        </div>
-                                        <h5 class="card-title">Settings</h5>
-                                    </div>
-                                    <div
-                                        class="col-6 d-flex align-items-center justify-content-end weird-height"
-                                    >
-                                        <!-- actions -->
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body">Komt later..</div>
-                        </div>
-                    </div>
-                </StaticElement>
-            </Vueform>
+            <div :style="{ height: state.content_height, overflowY: 'auto', overflowX: 'hidden' }">
+                <Vueform
+                    ref="editForm$"
+                    validate-on="step"
+                    :display-errors="false"
+                    :endpoint="submitForm"
+                    id="editForm$"
+                >
+                    <component
+                        v-if="
+                            state.pluginFormComponent &&
+                            (state.editStatus === EditStatusEnum.EditPlugin ||
+                                state.editStatus === EditStatusEnum.AddPlugin)
+                        "
+                        :class="{ 'd-none': state.showSettings }"
+                        :is="state.pluginFormComponent.component"
+                        @update-form-value="setFormValue"
+                        v-bind="{ ...state.pluginFormComponent.props }"
+                    />
+                    <component
+                        v-if="
+                            state.actionTypeFormComponent &&
+                            (state.editStatus === EditStatusEnum.EditAction ||
+                                state.editStatus === EditStatusEnum.AddAction)
+                        "
+                        :class="{ 'd-none': state.showSettings }"
+                        :is="state.actionTypeFormComponent.component"
+                        v-bind="state.actionTypeFormComponent.props"
+                    />
+                    <EditSettings
+                        v-if="state.currentAction"
+                        :class="{ 'd-none': !state.showSettings }"
+                        v-bind="{
+                            modelValue: state.currentAction,
+                            editSettingsForm: state.settingsFormComponent,
+                        }"
+                    />
+                </Vueform>
+            </div>
         </template>
     </MainLayout>
 </template>

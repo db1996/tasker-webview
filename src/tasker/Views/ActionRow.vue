@@ -2,9 +2,9 @@
 import MdiIcon from '@/components/MdiIcon.vue'
 import { computed, ref, type PropType } from 'vue'
 import { forEach } from 'lodash'
-import type BaseActionType from './actionTypes/BaseActionType'
+import type BaseActionType from '@/tasker/actionTypes/BaseActionType'
 import BaseButton from '@/components/BaseButton.vue'
-import { ActionTypeSupportedType } from './enums/ActionTypeSupportedType'
+import { ActionTypeSupportedType } from '@/tasker/enums/ActionTypeSupportedType'
 import { useTaskerClient } from '@/stores/useTaskerClient'
 
 const taskerClient = useTaskerClient().taskerClient

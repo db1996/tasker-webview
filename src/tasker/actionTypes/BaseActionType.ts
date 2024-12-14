@@ -1,12 +1,14 @@
 import { ActionTypeSupportedType } from '../enums/ActionTypeSupportedType'
 import type Action from '../types/Action'
-import type { ActiontypeFormComponent } from './ActiontypeFormComponent'
+import type { ActiontypeFormComponent } from '../ComponentTypes/ActiontypeFormComponent'
 import type BasePlugin from './../plugins/BasePlugin'
 import { markRaw } from 'vue'
 import DefaultForm from './default/DefaultForm.vue'
 import { forEach } from 'lodash'
+import type { SettingsFormComponent } from '../ComponentTypes/SettingsFormComponent'
 
 export default class BaseActionType {
+    markRawSettings: unknown | null = null
     supported_plugins: Array<BasePlugin> = []
     tasker_name: string = ''
     tasker_code: number = 0
@@ -14,6 +16,7 @@ export default class BaseActionType {
     modal_width: string = 'col-md-8'
     action: Action
     index: number = 0
+    content_height: string = '300px'
 
     supportedType: ActionTypeSupportedType = ActionTypeSupportedType.CUSTOM
     show_args: boolean = true
@@ -36,11 +39,39 @@ export default class BaseActionType {
         return Promise.resolve(this.buildFormComponentEntry(markRaw(DefaultForm)))
     }
 
+    // return a promise with the form component vue file
+    getSettingsFormComponent(
+        pluginIndex: number | null = null,
+    ): Promise<SettingsFormComponent | null> {
+        if (this.markRawSettings !== null) {
+            return Promise.resolve(
+                this.buildSettingsFormComponentEntry(this.markRawSettings, pluginIndex),
+            )
+        }
+        return Promise.resolve(null)
+    }
+
     // Do not override this, this will build the form component entry, it is required to be ActiontypeFormComponent
     buildFormComponentEntry(markRawComponent: unknown): ActiontypeFormComponent {
         return {
             component: markRawComponent,
             props: { modelValue: this },
+        }
+    }
+
+    // Do not override this, this will build the form component entry, it is required to be SettingsFormComponent
+    buildSettingsFormComponentEntry(
+        markRawComponent: unknown,
+        pluginIndex: number | null = null,
+    ): SettingsFormComponent | null {
+        let plugin: BasePlugin | null = null
+        if (pluginIndex !== null && this.supported_plugins[pluginIndex] !== null) {
+            plugin = this.supported_plugins[pluginIndex] as BasePlugin
+        }
+
+        return {
+            component: markRawComponent,
+            props: { modelValue: this, plugin: plugin },
         }
     }
 
@@ -53,6 +84,13 @@ export default class BaseActionType {
                 }
             })
         })
+        return true
+    }
+
+    submitDefaultSettingsForm(values: { label: string | null }): boolean {
+        if (values.label !== null) {
+            this.action.label = values.label
+        }
         return true
     }
 

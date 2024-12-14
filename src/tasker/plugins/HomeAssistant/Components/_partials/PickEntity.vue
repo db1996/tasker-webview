@@ -1,7 +1,7 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script lang="ts" setup>
 import { onMounted, ref, type PropType } from 'vue'
-import type HomeAssistantPlugin from '../../HomeAssistantPlugin'
+import HomeAssistantPlugin from '../../HomeAssistantPlugin'
 import type { HaEntity } from '../../types/HaEntity'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { forEach } from 'lodash'
@@ -17,7 +17,7 @@ const props = defineProps({
     },
 })
 
-const client = props.modelValue?.client
+const client = HomeAssistantPlugin.client
 
 const entities = ref<HaEntity[] | null>(null)
 const resultEntities = ref<HaEntity[] | null>(null)

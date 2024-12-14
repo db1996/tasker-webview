@@ -1,19 +1,22 @@
 import HttpRequestForm from './Components/HttpRequestForm.vue'
 import { markRaw } from 'vue'
 import BaseActionType from '@/tasker/actionTypes/BaseActionType'
-import type { ActiontypeFormComponent } from '@/tasker/actionTypes/ActiontypeFormComponent'
+import type { ActiontypeFormComponent } from '@/tasker/ComponentTypes/ActiontypeFormComponent'
 import Action from '@/tasker/types/Action'
 import { MethodType } from './helpers/MethodType'
 import HttpRequestParameters from './helpers/HttpRequestParameters'
 import { forEach, split } from 'lodash'
+import HttpSettings from './Components/HttpSettings.vue'
 
 export default class HttpRequestActionType extends BaseActionType {
+    markRawSettings = markRaw(HttpSettings)
     // base tasker configuration
     name: string = 'HTTP Request'
     tasker_code: number = 339
     tasker_name: string = 'HTTP Request'
 
     show_args: boolean = true
+    content_height: string = '500px'
 
     // Parameters
     params: HttpRequestParameters = new HttpRequestParameters()

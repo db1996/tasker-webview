@@ -1,7 +1,7 @@
 import type BaseActionType from '@/tasker/actionTypes/BaseActionType'
 import { EditStatusEnum } from './EditStatusEnum'
-import type { ActiontypeFormComponent } from '@/tasker/actionTypes/ActiontypeFormComponent'
-import type { PluginFormComponent } from '@/tasker/plugins/PluginFormComponent'
+import type { ActiontypeFormComponent } from '@/tasker/ComponentTypes/ActiontypeFormComponent'
+import type { PluginFormComponent } from '@/tasker/ComponentTypes/PluginFormComponent'
 import type TaskerClient from '@/tasker/TaskerClient'
 import { useTaskerClient } from '@/stores/useTaskerClient'
 import { forEach } from 'lodash'
@@ -9,13 +9,32 @@ import { ActionTypeManager } from '@/tasker/helpers/ActionTypeManager'
 import { computed, ref, type Ref } from 'vue'
 import type BasePlugin from '@/tasker/plugins/BasePlugin'
 import { TaskerClientStatus } from '@/tasker/enums/TaskerClientStatus'
+import type { SettingsFormComponent } from '@/tasker/ComponentTypes/SettingsFormComponent'
+import router from '@/router'
 
 export default class HomeViewState {
+    private _editStatus = ref<EditStatusEnum>(EditStatusEnum.None)
+    private taskerClient: TaskerClient
+    private manager: ActionTypeManager
+
+    public content_height = '300px'
+    public currentAction = ref<BaseActionType | null>(null)
+    public currentPluginIndex = ref<number | null>(null)
     public isRefreshing = ref<boolean>(false)
     public actionTypeRows = ref<BaseActionType[]>([])
     public actionTypeFormComponent = ref<ActiontypeFormComponent | null>(null)
     public pluginFormComponent = ref<PluginFormComponent | null>(null)
+    public settingsFormComponent = ref<SettingsFormComponent | null>(null)
     public newBasePlugin = ref<BasePlugin | null>(null)
+    public showSettings = ref<boolean>(false)
+
+    public urlParams = ref<{
+        edit: number | null
+        plugin: number | null
+    }>({
+        edit: null,
+        plugin: null,
+    })
 
     public taskerStatus = computed(() => {
         const ret = {
@@ -49,11 +68,6 @@ export default class HomeViewState {
         return ret
     })
 
-    private _editStatus = ref<EditStatusEnum>(EditStatusEnum.None)
-    private taskerClient: TaskerClient
-    private manager: ActionTypeManager
-    // a boolean prop with a setter function
-
     constructor() {
         this.taskerClient = useTaskerClient().taskerClient
         this.manager = new ActionTypeManager()
@@ -86,8 +100,39 @@ export default class HomeViewState {
                 }
             })
         } else {
-            this.actionTypeRows.value = []
         }
+    }
+
+    setEditAction = async (actionIndex: number, pluginIndex: number | null = null) => {
+        const action = this.actionTypeRows.value[actionIndex]
+        if (action != null) {
+            this.content_height = action.content_height
+            this.currentAction.value = action
+            this.actionTypeFormComponent.value = await action.getFormComponent()
+            this.settingsFormComponent.value = await action.getSettingsFormComponent(pluginIndex)
+            this.editStatus = EditStatusEnum.EditAction
+            if (pluginIndex !== null) {
+                this.currentPluginIndex.value = pluginIndex
+                const typeFormComponentEntry: PluginFormComponent =
+                    await this.actionTypeRows.value[actionIndex].supported_plugins[
+                        pluginIndex
+                    ].getFormComponent()
+
+                this.pluginFormComponent.value = typeFormComponentEntry
+                this.actionTypeFormComponent.value = null
+                this.editStatus.value = EditStatusEnum.EditPlugin
+            } else {
+                if (action) {
+                    this.actionTypeFormComponent.value = await action.getFormComponent()
+                    this.pluginFormComponent.value = null
+                    this.editStatus.value = EditStatusEnum.EditAction
+                }
+            }
+        }
+    }
+
+    setUrlParams = (params: { edit: number | null; plugin: number | null }) => {
+        this.urlParams.value = params
     }
 
     refresh = async () => {
@@ -95,5 +140,11 @@ export default class HomeViewState {
         this.editStatus = EditStatusEnum.None
         await this.initActions()
         this.isRefreshing.value = false
+        this.showSettings.value = false
+
+        // if the current route query edit or plugin are set, push the route to the same page without the query
+        if (this.urlParams.value.edit !== null || this.urlParams.value.plugin !== null) {
+            router.push({ query: {} })
+        }
     }
 }
