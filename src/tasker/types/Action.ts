@@ -1,7 +1,7 @@
 import type ActionArg from './ActionArg'
 import ActionBlockProperty from './ActionBlockProperty'
 import type ActionCondition from './ActionCondition'
-import type { ActionSpec } from './specs/ActionSpec'
+import ActionSpec from './specs/ActionSpec'
 
 export default class Action {
     public code: number = 0

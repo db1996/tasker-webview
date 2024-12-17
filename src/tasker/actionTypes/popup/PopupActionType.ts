@@ -17,8 +17,16 @@ export default class PopupActionType extends BaseActionType {
 
     constructor(action: Action) {
         super(action)
-        this.message = this.action.args[1].value.toString()
-        this.description = 'Message: ' + this.message
+    }
+
+    canHandle(): boolean {
+        if (this.action.code === this.tasker_code && this.action.name === this.tasker_name) {
+            this.message = this.action.args[1].value.toString()
+            this.description = 'Message: ' + this.message
+            return true
+        }
+
+        return false
     }
 
     getFormComponent(): Promise<ActiontypeFormComponent> {

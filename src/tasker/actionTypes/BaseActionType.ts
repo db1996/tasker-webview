@@ -79,8 +79,9 @@ export default class BaseActionType {
     // Will be called when the form in the modal is submitted
     submitForm(values: object): boolean {
         forEach(values, (value, key) => {
+            const expl = key.split('_')
             forEach(this.action.args, (arg) => {
-                if (arg.name === key) {
+                if (arg.id === parseInt(expl[1])) {
                     arg.value = value
                 }
             })

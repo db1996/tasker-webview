@@ -77,6 +77,8 @@ async function reorderAction(event: any) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function submitForm(FormData: any, form$: any) {
     const data = form$.data
+    console.log(state.value.editStatus)
+
     if (
         state.value.editStatus == EditStatusEnum.EditPlugin &&
         urlParams.value.edit !== null &&
@@ -113,6 +115,17 @@ async function submitForm(FormData: any, form$: any) {
                 await taskerClient.replaceAction(actionType)
             }
         }
+    } else if (state.value.editStatus == EditStatusEnum.AddAction) {
+        const actionType = state.value.currentAction
+        console.log(actionType)
+
+        if (actionType) {
+            const resp = actionType.submitForm(data)
+            const settingsRep = actionType.submitDefaultSettingsForm(data)
+            if (resp && settingsRep) {
+                await taskerClient.insertActionLast(actionType)
+            }
+        }
     }
     state.value.refresh()
 }
@@ -125,6 +138,10 @@ async function newHomeAssistantTask() {
     state.value.pluginFormComponent = typeFormComponentEntry
 
     state.value.content_height = typeFormComponentEntry.props.modelValue.actionType.content_height
+}
+
+async function newAction(code: number) {
+    state.value.createNewAction(code)
 }
 
 function setFormValue(val: { key: string; value: string }) {
@@ -149,6 +166,15 @@ function setFormValue(val: { key: string; value: string }) {
                 sm
                 icon-left="plus"
                 @click="newHomeAssistantTask"
+                v-tooltip
+                data-title="Create action"
+                :checkrunning="true"
+            />
+            <BaseButton
+                btnClass="btn-secondary ms-2"
+                sm
+                icon-left="plus"
+                @click="newAction(547)"
                 v-tooltip
                 data-title="Create action"
                 :checkrunning="true"

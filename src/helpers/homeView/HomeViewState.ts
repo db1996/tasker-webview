@@ -28,6 +28,7 @@ export default class HomeViewState {
     public pluginFormComponent = ref<PluginFormComponent | null>(null)
     public settingsFormComponent = ref<SettingsFormComponent | null>(null)
     public newBasePlugin = ref<BasePlugin | null>(null)
+    public newBaseActionType = ref<BaseActionType | null>(null)
     public showSettings = ref<boolean>(false)
 
     public urlParams = ref<{
@@ -83,8 +84,8 @@ export default class HomeViewState {
                     this.isBooting.value &&
                     this.firstFetch
                 ) {
-                    await this.initActions()
                     this.firstFetch = false
+                    await this.initActions()
                     this.isBooting.value = false
                 }
             },
@@ -126,7 +127,6 @@ export default class HomeViewState {
 
     setEditAction = async (actionIndex: number, pluginIndex: number | null = null) => {
         const action = this.actionTypeRows.value[actionIndex]
-        console.log(this.actionTypeRows.value)
 
         if (action != null) {
             this.content_height = action.content_height
@@ -152,6 +152,23 @@ export default class HomeViewState {
                 }
             }
         }
+    }
+
+    createNewAction = async (code: number) => {
+        forEach(this.taskerClient.actionSpecs, async (actionSpec) => {
+            if (actionSpec.code === code) {
+                const newAction = actionSpec.createAction()
+                this.manager.getFormForAction(newAction)
+                this.newBaseActionType.value = this.manager.getFormForAction(newAction)
+                if (this.newBaseActionType.value != null) {
+                    this.actionTypeFormComponent.value =
+                        await this.newBaseActionType.value.getFormComponent()
+                    this.editStatus = EditStatusEnum.AddAction
+                    this.pluginFormComponent.value = null
+                    this.currentAction.value = this.newBaseActionType.value
+                }
+            }
+        })
     }
 
     setUrlParams = (params: { edit: number | null; plugin: number | null }) => {

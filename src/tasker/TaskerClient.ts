@@ -3,7 +3,7 @@ import { taskerStoreError } from './enums/taskerStoreError'
 import { cloneDeep, forEach } from 'lodash'
 import type BaseActionType from './actionTypes/BaseActionType'
 import { TaskerClientStatus } from './enums/TaskerClientStatus'
-import type { ActionSpec } from './types/specs/ActionSpec'
+import ActionSpec from './types/specs/ActionSpec'
 
 export default class TaskerClient {
     url: string = ''
@@ -60,13 +60,17 @@ export default class TaskerClient {
         this.taskerClientStatus = TaskerClientStatus.RETRIEVE
         try {
             const response = await fetch(this.url + '/action_specs')
-            const actionSpecs: Array<ActionSpec> = await response.json()
+            const actionSpecsData: Array<object> = await response.json()
 
             this.isRunning = false
-            if (!Array.isArray(actionSpecs)) {
+            if (!Array.isArray(actionSpecsData)) {
                 this.taskerClientStatus = TaskerClientStatus.NONE
                 return null
             }
+
+            const actionSpecs: Array<ActionSpec> = actionSpecsData.map(
+                (data) => new ActionSpec(data as ActionSpec),
+            )
 
             this.taskerClientStatus = TaskerClientStatus.NONE
             return actionSpecs

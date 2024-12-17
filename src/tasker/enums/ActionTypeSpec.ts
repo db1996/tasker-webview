@@ -1,9 +1,9 @@
 export enum ActionTypeSpec {
-    'int' = 0,
-    'string' = 1,
-    'app' = 2,
-    'bool' = 3,
-    'icon' = 4,
-    'bundle' = 5,
-    'scene' = 6,
+    INT = 0,
+    STRING = 1,
+    APP = 2,
+    BOOLEAN = 3,
+    ICON = 4,
+    BUNDLE = 5,
+    SCENE = 6,
 }
