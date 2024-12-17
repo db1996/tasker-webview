@@ -170,7 +170,7 @@ function setFormValue(val: { key: string; value: string }) {
                 data-title="Create action"
                 :checkrunning="true"
             />
-            <BaseButton
+            <!-- <BaseButton
                 btnClass="btn-secondary ms-2"
                 sm
                 icon-left="plus"
@@ -178,7 +178,7 @@ function setFormValue(val: { key: string; value: string }) {
                 v-tooltip
                 data-title="Create action"
                 :checkrunning="true"
-            />
+            /> -->
         </template>
         <template #default>
             <div
