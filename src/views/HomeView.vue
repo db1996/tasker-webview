@@ -31,6 +31,11 @@ watch(
 )
 
 watch(
+    () => route.query.add,
+    async () => await checkEditParam(),
+)
+
+watch(
     () => state.value.isBooting,
     async (value) => {
         if (!value) {
@@ -43,21 +48,32 @@ watch(
 
 async function checkEditParam() {
     state.value.urlParams = urlParams.value
+    console.log(urlParams.value)
+
     if (urlParams.value.edit !== null) {
         const actionIndex = urlParams.value.edit
         const pluginIndex = urlParams.value.plugin
         state.value.setEditAction(actionIndex, pluginIndex)
+    } else if (urlParams.value.add === null) {
+        state.value.refresh()
     }
 }
 
 const urlParams = computed(() => {
-    const params: { edit: number | null; plugin: number | null } = { edit: null, plugin: null }
+    const params: { edit: number | null; plugin: number | null; add: number | null } = {
+        edit: null,
+        plugin: null,
+        add: null,
+    }
 
     if (route.query.plugin !== undefined && route.query.plugin !== null) {
         params.plugin = parseFloat(route.query.plugin as string)
     }
     if (route.query.edit !== undefined && route.query.edit !== null) {
         params.edit = parseFloat(route.query.edit as string)
+    }
+    if (route.query.add !== undefined && route.query.add !== null) {
+        params.add = parseFloat(route.query.add as string)
     }
     return params
 })
@@ -138,10 +154,12 @@ async function newHomeAssistantTask() {
     state.value.pluginFormComponent = typeFormComponentEntry
 
     state.value.content_height = typeFormComponentEntry.props.modelValue.actionType.content_height
+    router.push({ query: { add: 1 } })
 }
 
 async function newAction(code: number) {
     state.value.createNewAction(code)
+    router.push({ query: { add: 1 } })
 }
 
 function setFormValue(val: { key: string; value: string }) {
