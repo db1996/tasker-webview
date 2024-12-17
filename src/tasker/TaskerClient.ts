@@ -3,6 +3,7 @@ import { taskerStoreError } from './enums/taskerStoreError'
 import { cloneDeep, forEach } from 'lodash'
 import type BaseActionType from './actionTypes/BaseActionType'
 import { TaskerClientStatus } from './enums/TaskerClientStatus'
+import type { ActionSpec } from './types/specs/ActionSpec'
 
 export default class TaskerClient {
     url: string = ''
@@ -10,6 +11,8 @@ export default class TaskerClient {
     error: taskerStoreError = taskerStoreError.NONE
     taskerClientStatus: TaskerClientStatus = TaskerClientStatus.NONE
     isRunning: boolean = false
+
+    actionSpecs: Array<ActionSpec> = []
 
     public constructor() {
         this.url = import.meta.env.VITE_TASKER_URL
@@ -27,19 +30,22 @@ export default class TaskerClient {
 
     async pingTasker() {
         this.ping = false
+        this.isRunning = true
 
         this.taskerClientStatus = TaskerClientStatus.RETRIEVE
         try {
-            const actions = await this.getActions()
-            if (actions !== null) {
-                this.ping = true
-                this.error = taskerStoreError.OK
+            const response = await fetch(this.url + '/ping')
+            const text = await response.text()
+            if (text !== '{}') {
+                this.error = taskerStoreError.NO_CONNECT
+                this.isRunning = false
+                this.ping = false
+                return
             }
 
-            if (!this.ping) {
-                this.error = taskerStoreError.NO_CONNECT
-            }
+            this.error = taskerStoreError.OK
             this.isRunning = false
+            this.ping = true
         } catch (e) {
             console.log('error caught', e)
 
@@ -49,23 +55,64 @@ export default class TaskerClient {
         }
     }
 
-    async getActions(): Promise<Array<Action> | null> {
+    async getActionSpecs(): Promise<Array<ActionSpec> | null> {
         this.isRunning = true
         this.taskerClientStatus = TaskerClientStatus.RETRIEVE
+        try {
+            const response = await fetch(this.url + '/action_specs')
+            const actionSpecs: Array<ActionSpec> = await response.json()
+
+            this.isRunning = false
+            if (!Array.isArray(actionSpecs)) {
+                this.taskerClientStatus = TaskerClientStatus.NONE
+                return null
+            }
+
+            this.taskerClientStatus = TaskerClientStatus.NONE
+            return actionSpecs
+        } catch (e) {
+            console.log('error caught', e)
+            this.isRunning = false
+            this.error = taskerStoreError.NO_CONNECT
+            this.taskerClientStatus = TaskerClientStatus.ERROR
+            return null
+        }
+    }
+
+    async getActions(): Promise<Array<Action> | null> {
+        if (this.isRunning) {
+            return null
+        }
+        this.isRunning = true
+        this.taskerClientStatus = TaskerClientStatus.RETRIEVE
+        if (this.actionSpecs.length === 0) {
+            const specs = await this.getActionSpecs()
+            if (specs === null) {
+                this.isRunning = false
+                this.taskerClientStatus = TaskerClientStatus.ERROR
+                return null
+            }
+            this.actionSpecs = specs
+        }
         try {
             const response = await fetch(this.url + '/actions')
             // const data = await response.json()
             // deserialize the response to an array of Action objects
             const actions: Array<Action> = await response.json()
-            this.isRunning = false
             if (!Array.isArray(actions)) {
                 this.taskerClientStatus = TaskerClientStatus.NONE
                 return null
             }
 
             forEach(actions, (action, index) => {
+                forEach(this.actionSpecs, (spec) => {
+                    if (spec.code === action.code) {
+                        action.actionSpec = spec
+                    }
+                })
                 action.index = index
             })
+            this.isRunning = false
             this.taskerClientStatus = TaskerClientStatus.NONE
             return actions
         } catch (e) {

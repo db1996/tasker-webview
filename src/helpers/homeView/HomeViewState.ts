@@ -6,7 +6,7 @@ import type TaskerClient from '@/tasker/TaskerClient'
 import { useTaskerClient } from '@/stores/useTaskerClient'
 import { forEach } from 'lodash'
 import { ActionTypeManager } from '@/tasker/helpers/ActionTypeManager'
-import { computed, ref, type Ref } from 'vue'
+import { computed, ref, watch, type Ref } from 'vue'
 import type BasePlugin from '@/tasker/plugins/BasePlugin'
 import { TaskerClientStatus } from '@/tasker/enums/TaskerClientStatus'
 import type { SettingsFormComponent } from '@/tasker/ComponentTypes/SettingsFormComponent'
@@ -16,7 +16,9 @@ export default class HomeViewState {
     private _editStatus = ref<EditStatusEnum>(EditStatusEnum.None)
     private taskerClient: TaskerClient
     private manager: ActionTypeManager
+    private firstFetch = true
 
+    public isBooting = ref<boolean>(true)
     public content_height = '300px'
     public currentAction = ref<BaseActionType | null>(null)
     public currentPluginIndex = ref<number | null>(null)
@@ -71,6 +73,22 @@ export default class HomeViewState {
     constructor() {
         this.taskerClient = useTaskerClient().taskerClient
         this.manager = new ActionTypeManager()
+
+        watch(
+            () => this.taskerClient.isRunning,
+            async (value) => {
+                if (
+                    this.actionTypeRows.value.length === 0 &&
+                    !value &&
+                    this.isBooting.value &&
+                    this.firstFetch
+                ) {
+                    await this.initActions()
+                    this.firstFetch = false
+                    this.isBooting.value = false
+                }
+            },
+        )
     }
 
     public set editStatus(value: EditStatusEnum) {
@@ -89,8 +107,11 @@ export default class HomeViewState {
     initActions = async () => {
         const actions = await this.taskerClient.getActions()
         if (actions != null) {
-            await this.manager.loadPlugins()
-            await this.manager.loadForms()
+            if (!this.manager.loaded) {
+                await this.manager.loadPlugins()
+                await this.manager.loadForms()
+                this.manager.loaded = true
+            }
             this.actionTypeRows.value = []
             forEach(actions, async (action, index) => {
                 const baseActionType = this.manager.getFormForAction(action)
@@ -105,6 +126,8 @@ export default class HomeViewState {
 
     setEditAction = async (actionIndex: number, pluginIndex: number | null = null) => {
         const action = this.actionTypeRows.value[actionIndex]
+        console.log(this.actionTypeRows.value)
+
         if (action != null) {
             this.content_height = action.content_height
             this.currentAction.value = action

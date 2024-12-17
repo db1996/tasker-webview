@@ -18,9 +18,10 @@ export default class BaseActionType {
     index: number = 0
     content_height: string = '300px'
 
-    supportedType: ActionTypeSupportedType = ActionTypeSupportedType.CUSTOM
+    supportedType: ActionTypeSupportedType = ActionTypeSupportedType.DEFAULT
     show_args: boolean = true
     description: string = ''
+    loaded_plugins: boolean = false
 
     // Always run this super in the constructor of the child class first. This will set the action and the tasker_name and tasker_code
     constructor(action: Action) {

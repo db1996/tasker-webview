@@ -3,6 +3,7 @@ import { markRaw } from 'vue'
 import BaseActionType from '@/tasker/actionTypes/BaseActionType'
 import type { ActiontypeFormComponent } from '@/tasker/ComponentTypes/ActiontypeFormComponent'
 import type Action from '@/tasker/types/Action'
+import { ActionTypeSupportedType } from '@/tasker/enums/ActionTypeSupportedType'
 
 export default class PopupActionType extends BaseActionType {
     tasker_code: number = 550
@@ -11,6 +12,8 @@ export default class PopupActionType extends BaseActionType {
     message: string = ''
     modal_width: string = 'col-md-6'
     show_args: boolean = false
+    content_height: string = '100px'
+    supportedType: ActionTypeSupportedType = ActionTypeSupportedType.CUSTOM
 
     constructor(action: Action) {
         super(action)

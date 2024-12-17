@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import BaseButton from '@/components/BaseButton.vue'
 import MainLayout from '@/layouts/MainLayout.vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { TaskerClientStatus } from '@/tasker/enums/TaskerClientStatus'
@@ -19,23 +19,34 @@ const route = useRoute()
 const state = ref<HomeViewState>(new HomeViewState())
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const editForm$ = ref<any>()
-const isBooting = ref(true)
 
 watch(
     () => route.query.edit,
-    async () => checkEditParam(),
+    async () => await checkEditParam(),
 )
 
-async function checkEditParam(refreshNoEdit: boolean = true) {
+watch(
+    () => route.query.plugin,
+    async () => await checkEditParam(),
+)
+
+watch(
+    () => state.value.isBooting,
+    async (value) => {
+        if (!value) {
+            console.log('Booting done')
+
+            await checkEditParam()
+        }
+    },
+)
+
+async function checkEditParam() {
     state.value.urlParams = urlParams.value
     if (urlParams.value.edit !== null) {
         const actionIndex = urlParams.value.edit
         const pluginIndex = urlParams.value.plugin
         state.value.setEditAction(actionIndex, pluginIndex)
-    } else {
-        if (refreshNoEdit) {
-            await state.value.refresh()
-        }
     }
 }
 
@@ -49,13 +60,6 @@ const urlParams = computed(() => {
         params.edit = parseFloat(route.query.edit as string)
     }
     return params
-})
-
-onMounted(async () => {
-    await state.value.refresh()
-    await checkEditParam(false)
-
-    isBooting.value = false
 })
 
 function randomKey() {
