@@ -1,16 +1,24 @@
 import BaseActionType from '@/tasker/actionTypes/BaseActionType'
 import type { PluginFormComponent } from '@/tasker/ComponentTypes/PluginFormComponent'
+import type { IPluginBasicProperties } from '../interfaces/IPluginBasicProperties'
 
-export default class BasePlugin {
+export default class BasePlugin implements IPluginBasicProperties {
     actionType: BaseActionType
 
     name: string = ''
     icon: string = 'connection'
-    modal_width: string = 'col-md-8'
     index: number = 0
+    nameStatic: string = ''
+    content_height: string = '500px'
 
     constructor(actionType: BaseActionType) {
         this.actionType = actionType
+        this.nameStatic = this.name
+    }
+
+    createNewAction(BaseActionType: BaseActionType): BasePlugin {
+        console.log('createNewAction', BaseActionType)
+        throw new Error('Method not implemented.')
     }
 
     // If the action is supported by this type. By default it is false so you need to override this and implement logic to recognize an action for this plugin. You can do this by checking the actionType, the actionType.action is the raw tasker action you can check

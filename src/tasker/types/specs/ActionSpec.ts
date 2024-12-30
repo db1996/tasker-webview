@@ -35,7 +35,6 @@ export default class ActionSpec {
 
     createAction(): Action {
         const action = new Action()
-        console.log('createAction', action)
 
         action.code = this.code
         action.name = this.name

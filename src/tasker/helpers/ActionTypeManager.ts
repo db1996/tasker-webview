@@ -63,4 +63,17 @@ export class ActionTypeManager {
 
         return ret
     }
+
+    createNewPlugin(
+        actionType: BaseActionType,
+        pluginName: string | null = null,
+    ): BasePlugin | null {
+        let newType: BasePlugin | null = null
+        this.pluginTypes.forEach((TypeClass) => {
+            if (pluginName == TypeClass.nameStatic) {
+                newType = TypeClass.createNewAction(actionType)
+            }
+        })
+        return newType
+    }
 }

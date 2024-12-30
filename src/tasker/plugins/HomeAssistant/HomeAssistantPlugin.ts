@@ -13,6 +13,8 @@ export default class HomeAssistantPlugin extends BasePlugin {
     realActionType: HttpRequestActionType | null = null
     name: string = 'Home Assistant'
     icon: string = 'home-assistant'
+    static nameStatic: string = 'Home Assistant'
+    content_height: string = '550px'
 
     static client: HomeAssistantClient = new HomeAssistantClient()
     serviceData: ServiceData = new ServiceData()
@@ -22,7 +24,6 @@ export default class HomeAssistantPlugin extends BasePlugin {
 
     constructor(actionType: BaseActionType) {
         super(actionType)
-        actionType.content_height = '550px'
 
         if (HomeAssistantPlugin.taskerReplaceUrl === '') {
             let envToken = import.meta.env.VITE_HOMEASSISTANT_TASKER_TOKEN
@@ -91,16 +92,7 @@ export default class HomeAssistantPlugin extends BasePlugin {
                 })
             }
         }
-        // if (values.data !== '') {
-        //     try {
-        //         this.serviceData.data = JSON.parse(values.data)
-        //         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        //     } catch (e) {
-        //         this.serviceData.data = null
-        //     }
-        // } else {
-        //     this.serviceData.data = null
-        // }
+
         if (this.realActionType !== null) {
             if (values.hasOwnProperty('timeout')) {
                 this.realActionType.params.timeout = values.timeout as number

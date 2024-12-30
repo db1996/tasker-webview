@@ -6,7 +6,6 @@ import draggable from 'vuedraggable'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { TaskerClientStatus } from '@/tasker/enums/TaskerClientStatus'
 import ActionRow from '@/tasker/Views/ActionRow.vue'
-import HomeAssistantPlugin from '@/tasker/plugins/HomeAssistant/HomeAssistantPlugin'
 import { useTaskerClient } from '@/stores/useTaskerClient'
 import HomeViewState from '@/helpers/homeView/HomeViewState'
 import router from '@/router'
@@ -48,26 +47,28 @@ watch(
 
 async function checkEditParam() {
     state.value.urlParams = urlParams.value
-    console.log(urlParams.value)
 
+    const pluginIndex = urlParams.value.plugin
     if (urlParams.value.edit !== null) {
         const actionIndex = urlParams.value.edit
-        const pluginIndex = urlParams.value.plugin
         state.value.setEditAction(actionIndex, pluginIndex)
-    } else if (urlParams.value.add === null) {
-        state.value.refresh()
+    } else if (urlParams.value.add !== null) {
+        const actionCode = urlParams.value.add
+        state.value.createNewAction(actionCode, pluginIndex)
+    } else {
+        await state.value.refresh()
     }
 }
 
 const urlParams = computed(() => {
-    const params: { edit: number | null; plugin: number | null; add: number | null } = {
+    const params: { edit: number | null; plugin: string | null; add: number | null } = {
         edit: null,
         plugin: null,
         add: null,
     }
 
     if (route.query.plugin !== undefined && route.query.plugin !== null) {
-        params.plugin = parseFloat(route.query.plugin as string)
+        params.plugin = route.query.plugin as string
     }
     if (route.query.edit !== undefined && route.query.edit !== null) {
         params.edit = parseFloat(route.query.edit as string)
@@ -93,8 +94,6 @@ async function reorderAction(event: any) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function submitForm(FormData: any, form$: any) {
     const data = form$.data
-    console.log(state.value.editStatus)
-
     if (
         state.value.editStatus == EditStatusEnum.EditPlugin &&
         urlParams.value.edit !== null &&
@@ -102,7 +101,10 @@ async function submitForm(FormData: any, form$: any) {
     ) {
         const actionType = state.value.actionTypeRows[urlParams.value.edit]
         if (actionType) {
-            const plugin = actionType.supported_plugins[urlParams.value.plugin]
+            const plugin = actionType.getPlugin(urlParams.value.plugin)
+            if (!plugin) {
+                return
+            }
             const resp = plugin.submitForm(data)
             state.value.currentAction?.submitDefaultSettingsForm(data)
             if (resp) {
@@ -133,8 +135,6 @@ async function submitForm(FormData: any, form$: any) {
         }
     } else if (state.value.editStatus == EditStatusEnum.AddAction) {
         const actionType = state.value.currentAction
-        console.log(actionType)
-
         if (actionType) {
             const resp = actionType.submitForm(data)
             const settingsRep = actionType.submitDefaultSettingsForm(data)
@@ -147,19 +147,7 @@ async function submitForm(FormData: any, form$: any) {
 }
 
 async function newHomeAssistantTask() {
-    state.value.newBasePlugin = HomeAssistantPlugin.createNewAction()
-    state.value.editStatus = EditStatusEnum.AddPlugin
-
-    const typeFormComponentEntry = await state.value.newBasePlugin.getFormComponent()
-    state.value.pluginFormComponent = typeFormComponentEntry
-
-    state.value.content_height = typeFormComponentEntry.props.modelValue.actionType.content_height
-    router.push({ query: { add: 1 } })
-}
-
-async function newAction(code: number) {
-    state.value.createNewAction(code)
-    router.push({ query: { add: 1 } })
+    router.push({ query: { add: 339, plugin: 'Home Assistant' } })
 }
 
 function setFormValue(val: { key: string; value: string }) {
@@ -188,15 +176,15 @@ function setFormValue(val: { key: string; value: string }) {
                 data-title="Create action"
                 :checkrunning="true"
             />
-            <!-- <BaseButton
+            <BaseButton
                 btnClass="btn-secondary ms-2"
                 sm
                 icon-left="plus"
-                @click="newAction(547)"
+                @click="router.push({ query: { add: 547, plugin: null } })"
                 v-tooltip
                 data-title="Create action"
                 :checkrunning="true"
-            /> -->
+            />
         </template>
         <template #default>
             <div
@@ -218,7 +206,7 @@ function setFormValue(val: { key: string; value: string }) {
                             <ActionRow
                                 v-bind="{ modelValue: element }"
                                 :key="randomKey()"
-                                @editAction="router.push({ query: { edit: index } })"
+                                @editAction="router.push({ query: { edit: index, plugin: null } })"
                                 @editPlugin="
                                     router.push({ query: { edit: index, plugin: $event } })
                                 "

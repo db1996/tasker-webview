@@ -10,7 +10,6 @@ export default class PopupActionType extends BaseActionType {
     tasker_name: string = 'Popup'
     name: string = 'Popup'
     message: string = ''
-    modal_width: string = 'col-md-6'
     show_args: boolean = false
     content_height: string = '100px'
     supportedType: ActionTypeSupportedType = ActionTypeSupportedType.CUSTOM

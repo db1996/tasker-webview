@@ -87,7 +87,7 @@ const editTypes = computed(() => {
             btnClass: 'btn-success',
             tooltip: 'Edit through plugin: ' + props.modelValue.supported_plugins[0].name,
             icon: props.modelValue.supported_plugins[0].icon,
-            plugin: props.modelValue.supported_plugins[0].index,
+            plugin: props.modelValue.supported_plugins[0].name,
         }
 
         ret.dropdown.push(noPluginMain)
@@ -101,7 +101,7 @@ const editTypes = computed(() => {
                 btnClass: 'btn-success',
                 tooltip: 'Edit through plugin: ' + value.name,
                 icon: value.icon,
-                plugin: value.index,
+                plugin: value.name,
             })
         })
     } else {
@@ -111,7 +111,7 @@ const editTypes = computed(() => {
     return ret
 })
 
-function editClick(plugin: number | null = null) {
+function editClick(plugin: string | null = null) {
     if (plugin !== null) {
         emit('editPlugin', plugin)
         return

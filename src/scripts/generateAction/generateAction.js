@@ -36,15 +36,6 @@ let replaceVars = [
         option_cli: '-a, --action_name <actiontype_name>'
     },
     {
-        replace_value: 'ACTIONTYPE_MODAL_WIDTH',
-        value: 'lg',
-        type: 'string',
-        required: false,
-        option_name: 'model_width',
-        option_question: 'Bootstrap model width (empty, sm, lg, xl)',
-        option_cli: '-w, --model_width <model_width>'
-    },
-    {
         replace_value: 'TASKER_CODE',
         value: '',
         type: 'number',

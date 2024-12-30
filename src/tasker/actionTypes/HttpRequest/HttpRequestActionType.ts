@@ -27,7 +27,11 @@ export default class HttpRequestActionType extends BaseActionType {
         super(action)
 
         this.params.method_type = this.action.args[0]?.value as MethodType
-        this.params.url = this.action.args[1]?.value as string
+        if (this.action.args[1]?.value === 0) {
+            this.params.url = ''
+        } else {
+            this.params.url = this.action.args[1]?.value as string
+        }
         const headersQP = split(this.action.args[2]?.value as string, '\n')
         this.params.headers = []
         forEach(headersQP, (header) => {

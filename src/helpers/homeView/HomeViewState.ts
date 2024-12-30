@@ -33,10 +33,12 @@ export default class HomeViewState {
 
     public urlParams = ref<{
         edit: number | null
-        plugin: number | null
+        plugin: string | null
+        add: number | null
     }>({
         edit: null,
         plugin: null,
+        add: null,
     })
 
     public taskerStatus = computed(() => {
@@ -125,25 +127,22 @@ export default class HomeViewState {
         }
     }
 
-    setEditAction = async (actionIndex: number, pluginIndex: number | null = null) => {
+    setEditAction = async (actionIndex: number, pluginName: string | null = null) => {
         const action = this.actionTypeRows.value[actionIndex]
 
         if (action != null) {
             this.content_height = action.content_height
             this.currentAction.value = action
             this.actionTypeFormComponent.value = await action.getFormComponent()
-            this.settingsFormComponent.value = await action.getSettingsFormComponent(pluginIndex)
+            this.settingsFormComponent.value = await action.getSettingsFormComponent(pluginName)
             this.editStatus = EditStatusEnum.EditAction
-            if (pluginIndex !== null) {
-                this.currentPluginIndex.value = pluginIndex
-                const typeFormComponentEntry: PluginFormComponent =
-                    await this.actionTypeRows.value[actionIndex].supported_plugins[
-                        pluginIndex
-                    ].getFormComponent()
-
-                this.pluginFormComponent.value = typeFormComponentEntry
-                this.actionTypeFormComponent.value = null
-                this.editStatus.value = EditStatusEnum.EditPlugin
+            if (pluginName !== null) {
+                const plugin = action.getPlugin(pluginName)
+                if (plugin) {
+                    this.pluginFormComponent.value = await plugin.getFormComponent()
+                    this.actionTypeFormComponent.value = null
+                    this.editStatus = EditStatusEnum.EditPlugin
+                }
             } else {
                 if (action) {
                     this.actionTypeFormComponent.value = await action.getFormComponent()
@@ -154,11 +153,10 @@ export default class HomeViewState {
         }
     }
 
-    createNewAction = async (code: number) => {
+    createNewAction = async (code: number, pluginName: string | null = null) => {
         forEach(this.taskerClient.actionSpecs, async (actionSpec) => {
             if (actionSpec.code === code) {
                 const newAction = actionSpec.createAction()
-                this.manager.getFormForAction(newAction)
                 this.newBaseActionType.value = this.manager.getFormForAction(newAction)
                 if (this.newBaseActionType.value != null) {
                     this.actionTypeFormComponent.value =
@@ -166,12 +164,27 @@ export default class HomeViewState {
                     this.editStatus = EditStatusEnum.AddAction
                     this.pluginFormComponent.value = null
                     this.currentAction.value = this.newBaseActionType.value
+                    this.content_height = this.newBaseActionType.value.content_height
+
+                    if (pluginName !== null) {
+                        const plugin = this.manager.createNewPlugin(
+                            this.newBaseActionType.value,
+                            pluginName,
+                        )
+
+                        if (plugin) {
+                            this.pluginFormComponent.value = await plugin.getFormComponent()
+                            this.actionTypeFormComponent.value = null
+                            this.editStatus = EditStatusEnum.AddPlugin
+                            this.content_height = plugin.content_height
+                        }
+                    }
                 }
             }
         })
     }
 
-    setUrlParams = (params: { edit: number | null; plugin: number | null }) => {
+    setUrlParams = (params: { edit: number | null; plugin: string | null; add: number | null }) => {
         this.urlParams.value = params
     }
 
@@ -183,7 +196,11 @@ export default class HomeViewState {
         this.showSettings.value = false
 
         // if the current route query edit or plugin are set, push the route to the same page without the query
-        if (this.urlParams.value.edit !== null || this.urlParams.value.plugin !== null) {
+        if (
+            this.urlParams.value.edit !== null ||
+            this.urlParams.value.plugin !== null ||
+            this.urlParams.value.add !== null
+        ) {
             router.push({ query: {} })
         }
     }

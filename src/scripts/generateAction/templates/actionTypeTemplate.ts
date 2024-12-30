@@ -10,7 +10,6 @@ export default class {{TS_FILENAME}} extends BaseActionType {
     tasker_name: string = '{{TASKER_NAME}}'
 
     // front-end configuration
-    modal_width: string = '{{ACTIONTYPE_MODAL_WIDTH}}'
     show_args: boolean = {{ACTIONTYPE_SHOW_ARGS}}
 
     constructor(action: Action) {

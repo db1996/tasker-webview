@@ -13,7 +13,6 @@ const taskerClient = useTaskerClient().taskerClient
 
 onMounted(async () => {
     await homeAssistantClient.value.ping()
-    console.log(taskerClient)
 
     settingForm.value?.update({
         tasker_url: taskerClient.url,
