@@ -44,6 +44,18 @@ docker compose up -d
 
 Open localhost:5079 in your browser
 
+#### Update
+
+If an update has come out, you need to rebuild in docker
+
+```sh
+docker compose down
+```
+
+```sh
+ docker compose up -d --no-deps --build
+```
+
 ### Compile and run
 
 #### Install dependencies
