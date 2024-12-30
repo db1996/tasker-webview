@@ -10,8 +10,8 @@ Current goal is to integrate regular tasker tasks
 
 ## Requirements
 
-- [Node](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (if you build yourself)
 - [Docker](https://docs.docker.com/engine/install/) (if you use docker)
+- [Node](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (ONLY if you build yourself)
 
 ## Setting up your environment and connections
 
