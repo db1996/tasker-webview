@@ -13,14 +13,14 @@ export default class BaseActionType {
     tasker_name: string = ''
     tasker_code: number = 0
     name: string = ''
-    modal_width: string = 'col-md-8'
     action: Action
     index: number = 0
-    content_height: string = '300px'
+    content_height: string = '500px'
 
-    supportedType: ActionTypeSupportedType = ActionTypeSupportedType.CUSTOM
+    supportedType: ActionTypeSupportedType = ActionTypeSupportedType.DEFAULT
     show_args: boolean = true
     description: string = ''
+    loaded_plugins: boolean = false
 
     // Always run this super in the constructor of the child class first. This will set the action and the tasker_name and tasker_code
     constructor(action: Action) {
@@ -41,7 +41,7 @@ export default class BaseActionType {
 
     // return a promise with the form component vue file
     getSettingsFormComponent(
-        pluginIndex: number | null = null,
+        pluginIndex: string | null = null,
     ): Promise<SettingsFormComponent | null> {
         if (this.markRawSettings !== null) {
             return Promise.resolve(
@@ -62,12 +62,9 @@ export default class BaseActionType {
     // Do not override this, this will build the form component entry, it is required to be SettingsFormComponent
     buildSettingsFormComponentEntry(
         markRawComponent: unknown,
-        pluginIndex: number | null = null,
+        pluginName: string | null = null,
     ): SettingsFormComponent | null {
-        let plugin: BasePlugin | null = null
-        if (pluginIndex !== null && this.supported_plugins[pluginIndex] !== null) {
-            plugin = this.supported_plugins[pluginIndex] as BasePlugin
-        }
+        const plugin: BasePlugin | null = this.getPlugin(pluginName)
 
         return {
             component: markRawComponent,
@@ -78,8 +75,9 @@ export default class BaseActionType {
     // Will be called when the form in the modal is submitted
     submitForm(values: object): boolean {
         forEach(values, (value, key) => {
+            const expl = key.split('_')
             forEach(this.action.args, (arg) => {
-                if (arg.name === key) {
+                if (arg.id === parseInt(expl[1])) {
                     arg.value = value
                 }
             })
@@ -92,6 +90,10 @@ export default class BaseActionType {
             this.action.label = values.label
         }
         return true
+    }
+
+    getPlugin(plugin: string | null): BasePlugin | null {
+        return this.supported_plugins.find((p) => p.name === plugin) || null
     }
 
     // Will be called before saving the action, set all the args on this.actiontype.args here

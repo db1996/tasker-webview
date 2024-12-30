@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import BaseButton from '@/components/BaseButton.vue'
 import MainLayout from '@/layouts/MainLayout.vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import MdiIcon from '@/components/MdiIcon.vue'
 import { TaskerClientStatus } from '@/tasker/enums/TaskerClientStatus'
 import ActionRow from '@/tasker/Views/ActionRow.vue'
-import HomeAssistantPlugin from '@/tasker/plugins/HomeAssistant/HomeAssistantPlugin'
 import { useTaskerClient } from '@/stores/useTaskerClient'
 import HomeViewState from '@/helpers/homeView/HomeViewState'
 import router from '@/router'
@@ -19,43 +18,65 @@ const route = useRoute()
 const state = ref<HomeViewState>(new HomeViewState())
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const editForm$ = ref<any>()
-const isBooting = ref(true)
 
 watch(
     () => route.query.edit,
-    async () => checkEditParam(),
+    async () => await checkEditParam(),
 )
 
-async function checkEditParam(refreshNoEdit: boolean = true) {
+watch(
+    () => route.query.plugin,
+    async () => await checkEditParam(),
+)
+
+watch(
+    () => route.query.add,
+    async () => await checkEditParam(),
+)
+
+watch(
+    () => state.value.isBooting,
+    async (value) => {
+        if (!value) {
+            console.log('Booting done')
+
+            await checkEditParam()
+        }
+    },
+)
+
+async function checkEditParam() {
     state.value.urlParams = urlParams.value
+
+    const pluginIndex = urlParams.value.plugin
     if (urlParams.value.edit !== null) {
         const actionIndex = urlParams.value.edit
-        const pluginIndex = urlParams.value.plugin
         state.value.setEditAction(actionIndex, pluginIndex)
+    } else if (urlParams.value.add !== null) {
+        const actionCode = urlParams.value.add
+        state.value.createNewAction(actionCode, pluginIndex)
     } else {
-        if (refreshNoEdit) {
-            await state.value.refresh()
-        }
+        await state.value.refresh()
     }
 }
 
 const urlParams = computed(() => {
-    const params: { edit: number | null; plugin: number | null } = { edit: null, plugin: null }
+    const params: { edit: number | null; plugin: string | null; add: number | null } = {
+        edit: null,
+        plugin: null,
+        add: null,
+    }
 
     if (route.query.plugin !== undefined && route.query.plugin !== null) {
-        params.plugin = parseFloat(route.query.plugin as string)
+        params.plugin = route.query.plugin as string
     }
     if (route.query.edit !== undefined && route.query.edit !== null) {
         params.edit = parseFloat(route.query.edit as string)
     }
+    if (route.query.add !== undefined && route.query.add !== null) {
+        params.add = parseFloat(route.query.add as string)
+    }
     return params
-})
-
-onMounted(async () => {
-    await state.value.refresh()
-    await checkEditParam(false)
-
-    isBooting.value = false
 })
 
 function randomKey() {
@@ -80,7 +101,10 @@ async function submitForm(FormData: any, form$: any) {
     ) {
         const actionType = state.value.actionTypeRows[urlParams.value.edit]
         if (actionType) {
-            const plugin = actionType.supported_plugins[urlParams.value.plugin]
+            const plugin = actionType.getPlugin(urlParams.value.plugin)
+            if (!plugin) {
+                return
+            }
             const resp = plugin.submitForm(data)
             state.value.currentAction?.submitDefaultSettingsForm(data)
             if (resp) {
@@ -109,16 +133,21 @@ async function submitForm(FormData: any, form$: any) {
                 await taskerClient.replaceAction(actionType)
             }
         }
+    } else if (state.value.editStatus == EditStatusEnum.AddAction) {
+        const actionType = state.value.currentAction
+        if (actionType) {
+            const resp = actionType.submitForm(data)
+            const settingsRep = actionType.submitDefaultSettingsForm(data)
+            if (resp && settingsRep) {
+                await taskerClient.insertActionLast(actionType)
+            }
+        }
     }
     state.value.refresh()
 }
 
 async function newHomeAssistantTask() {
-    state.value.newBasePlugin = HomeAssistantPlugin.createNewAction()
-    state.value.editStatus = EditStatusEnum.AddPlugin
-
-    const typeFormComponentEntry = await state.value.newBasePlugin.getFormComponent()
-    state.value.pluginFormComponent = typeFormComponentEntry
+    router.push({ query: { add: 339, plugin: 'Home Assistant' } })
 }
 
 function setFormValue(val: { key: string; value: string }) {
@@ -147,6 +176,15 @@ function setFormValue(val: { key: string; value: string }) {
                 data-title="Create action"
                 :checkrunning="true"
             />
+            <BaseButton
+                btnClass="btn-secondary ms-2"
+                sm
+                icon-left="plus"
+                @click="router.push({ query: { add: 547, plugin: null } })"
+                v-tooltip
+                data-title="Create action"
+                :checkrunning="true"
+            />
         </template>
         <template #default>
             <div
@@ -168,7 +206,7 @@ function setFormValue(val: { key: string; value: string }) {
                             <ActionRow
                                 v-bind="{ modelValue: element }"
                                 :key="randomKey()"
-                                @editAction="router.push({ query: { edit: index } })"
+                                @editAction="router.push({ query: { edit: index, plugin: null } })"
                                 @editPlugin="
                                     router.push({ query: { edit: index, plugin: $event } })
                                 "

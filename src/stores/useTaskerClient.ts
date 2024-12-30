@@ -5,5 +5,9 @@ import TaskerClient from '@/tasker/TaskerClient'
 export const useTaskerClient = defineStore('taskerClient', () => {
     const taskerClient = ref<TaskerClient>(new TaskerClient())
 
-    return {taskerClient}
+    function pingTasker() {
+        taskerClient.value.pingTasker()
+    }
+
+    return { taskerClient, pingTasker }
 })

@@ -3,19 +3,19 @@ import MainLayout from '@/layouts/MainLayout.vue'
 import { taskerStoreError } from '@/tasker/enums/taskerStoreError'
 import { computed, onMounted, ref } from 'vue'
 import MdiIcon from '@/components/MdiIcon.vue'
-import TaskerClient from '@/tasker/TaskerClient'
 import HomeAssistantPlugin from '@/tasker/plugins/HomeAssistant/HomeAssistantPlugin'
+import { useTaskerClient } from '@/stores/useTaskerClient'
 
 const settingForm = ref()
 
 const homeAssistantClient = ref(HomeAssistantPlugin.client)
-const taskerClient = ref<TaskerClient>(new TaskerClient())
+const taskerClient = useTaskerClient().taskerClient
 
 onMounted(async () => {
     await homeAssistantClient.value.ping()
-    await taskerClient.value.pingTasker()
+
     settingForm.value?.update({
-        tasker_url: taskerClient.value.url,
+        tasker_url: taskerClient.url,
         homeassistant_url: homeAssistantClient.value.baseUrl,
         homeassistant_token: homeAssistantClient.value.accessToken,
     })
@@ -29,27 +29,27 @@ const taskerStatus = computed(() => {
         spin: false,
     }
 
-    if (taskerClient.value.error === taskerStoreError.OK && taskerClient.value.ping) {
+    if (taskerClient.error === taskerStoreError.OK && taskerClient.ping) {
         ret = {
-            text: taskerClient.value.error,
+            text: taskerClient.error,
             text_class: 'text-success',
             icon: 'check-circle',
             spin: false,
         }
     }
     if (
-        taskerClient.value.error === taskerStoreError.NO_CONNECT ||
-        taskerClient.value.error === taskerStoreError.NO_URL
+        taskerClient.error === taskerStoreError.NO_CONNECT ||
+        taskerClient.error === taskerStoreError.NO_URL
     ) {
         ret = {
-            text: taskerClient.value.error,
+            text: taskerClient.error,
             text_class: 'text-danger',
             icon: 'alert',
             spin: false,
         }
     }
 
-    if (taskerClient.value.isRunning) {
+    if (taskerClient.isRunning) {
         ret.icon = 'loading'
         ret.spin = true
     }

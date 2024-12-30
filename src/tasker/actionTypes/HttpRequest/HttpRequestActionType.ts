@@ -7,6 +7,7 @@ import { MethodType } from './helpers/MethodType'
 import HttpRequestParameters from './helpers/HttpRequestParameters'
 import { forEach, split } from 'lodash'
 import HttpSettings from './Components/HttpSettings.vue'
+import { ActionTypeSupportedType } from '@/tasker/enums/ActionTypeSupportedType'
 
 export default class HttpRequestActionType extends BaseActionType {
     markRawSettings = markRaw(HttpSettings)
@@ -17,6 +18,7 @@ export default class HttpRequestActionType extends BaseActionType {
 
     show_args: boolean = true
     content_height: string = '500px'
+    supportedType: ActionTypeSupportedType = ActionTypeSupportedType.CUSTOM
 
     // Parameters
     params: HttpRequestParameters = new HttpRequestParameters()
@@ -25,7 +27,11 @@ export default class HttpRequestActionType extends BaseActionType {
         super(action)
 
         this.params.method_type = this.action.args[0]?.value as MethodType
-        this.params.url = this.action.args[1]?.value as string
+        if (this.action.args[1]?.value === 0) {
+            this.params.url = ''
+        } else {
+            this.params.url = this.action.args[1]?.value as string
+        }
         const headersQP = split(this.action.args[2]?.value as string, '\n')
         this.params.headers = []
         forEach(headersQP, (header) => {

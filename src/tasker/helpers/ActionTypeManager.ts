@@ -8,6 +8,7 @@ import { forEach } from 'lodash'
 export class ActionTypeManager {
     private types: IActionTypeConstructor[] = []
     private pluginTypes: IPluginConstructor[] = []
+    public loaded = false
 
     async loadForms() {
         const formModules = [
@@ -39,8 +40,9 @@ export class ActionTypeManager {
         const typeClass = this.types.find((TypeClass) => new TypeClass(action).canHandle())
 
         const type = typeClass ? new typeClass(action) : null
-        if (type) {
+        if (type && !type?.loaded_plugins) {
             type.supported_plugins = this.getPluginsForAction(type)
+            type.loaded_plugins = true
         }
 
         return type
@@ -60,5 +62,18 @@ export class ActionTypeManager {
         })
 
         return ret
+    }
+
+    createNewPlugin(
+        actionType: BaseActionType,
+        pluginName: string | null = null,
+    ): BasePlugin | null {
+        let newType: BasePlugin | null = null
+        this.pluginTypes.forEach((TypeClass) => {
+            if (pluginName == TypeClass.nameStatic) {
+                newType = TypeClass.createNewAction(actionType)
+            }
+        })
+        return newType
     }
 }

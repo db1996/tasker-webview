@@ -1,34 +1,55 @@
 <script setup lang="ts">
 import type { PropType } from 'vue'
-import type DefaultActionType from './DefaultActionType'
+import BaseActionType from '../BaseActionType'
+import { ActionTypeSpec } from '@/tasker/enums/ActionTypeSpec'
 
 defineProps({
-    modelValue: Object as PropType<DefaultActionType>,
+    modelValue: Object as PropType<BaseActionType>,
 })
 </script>
 <template>
-    <template v-for="(arg, index) in modelValue?.action.args" :key="index">
-        <TextElement
-            v-if="typeof arg.value === 'string'"
-            :name="arg.name"
-            :label="arg.name"
-            :field-name="arg.name"
-            :default="arg.value"
-        />
-        <TextElement
-            v-if="typeof arg.value === 'number'"
-            input-type="number"
-            :name="arg.name"
-            :label="arg.name"
-            :field-name="arg.name"
-            :default="arg.value"
-        />
-        <ToggleElement
-            v-else-if="typeof arg.value === 'boolean'"
-            :name="arg.name"
-            :label="arg.name"
-            :field-name="arg.name"
-            :default="arg.value"
-        />
-    </template>
+    <GroupElement name="defaultForm">
+        <template v-for="(arg, index) in modelValue?.action.actionSpec?.args" :key="index">
+            <TextElement
+                v-if="arg.type === ActionTypeSpec.STRING"
+                :name="'arg_' + arg.id"
+                :label="arg.name"
+                :field-name="'arg_' + arg.id"
+                :default="
+                    (modelValue?.action.args.find((a) => a.id === arg.id)?.value as string) ?? ''
+                "
+            />
+            <TextElement
+                v-else-if="arg.type === ActionTypeSpec.INT"
+                input-type="number"
+                :name="'arg_' + arg.id"
+                :label="arg.name"
+                :field-name="'arg_' + arg.id"
+                :default="
+                    (modelValue?.action.args.find((a) => a.id === arg.id)?.value as number) ?? ''
+                "
+            />
+            <ToggleElement
+                v-else-if="arg.type === ActionTypeSpec.BOOLEAN"
+                :name="'arg_' + arg.id"
+                :label="arg.name"
+                :field-name="'arg_' + arg.id"
+                :default="
+                    (modelValue?.action.args.find((a) => a.id === arg.id)?.value as boolean) ??
+                    false
+                "
+            />
+            <StaticElement v-else-if="arg.type == ActionTypeSpec.BUNDLE" :name="arg.name" />
+
+            <TextElement
+                v-else
+                name=""
+                :label="arg.name"
+                field-name=""
+                default=""
+                disabled
+                :placeholder="'Argument is of type: ' + ActionTypeSpec[arg.type].toLowerCase()"
+            />
+        </template>
+    </GroupElement>
 </template>

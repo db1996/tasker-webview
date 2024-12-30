@@ -6,6 +6,8 @@ import type BaseActionType from '@/tasker/actionTypes/BaseActionType'
 import BaseButton from '@/components/BaseButton.vue'
 import { ActionTypeSupportedType } from '@/tasker/enums/ActionTypeSupportedType'
 import { useTaskerClient } from '@/stores/useTaskerClient'
+import { type EditButton } from '../types/EditButton'
+import DropdownButton from '@/components/DropdownButton.vue'
 
 const taskerClient = useTaskerClient().taskerClient
 
@@ -49,38 +51,67 @@ const labelBg = computed(() => {
     return 'bg-secondary'
 })
 
-const editType = computed(() => {
+const editTypes = computed(() => {
+    const ret = {
+        main: {
+            type: 'custom',
+            btnClass: 'btn-primary',
+            tooltip: 'Custom action form - no plugin',
+            icon: 'pencil',
+            plugin: null,
+        } as EditButton,
+        dropdown: Array<EditButton>(),
+    }
+
+    let noPluginMain = {
+        type: 'custom',
+        btnClass: 'btn-primary',
+        tooltip: 'Custom action form - no plugin',
+        icon: 'pencil',
+        plugin: null,
+    } as EditButton
+
+    if (props.modelValue.supportedType === ActionTypeSupportedType.DEFAULT) {
+        noPluginMain = {
+            type: 'default',
+            btnClass: 'btn-secondary',
+            tooltip: 'No custom form yet, edit the arguments directly',
+            icon: 'pencil',
+            plugin: null,
+        }
+    }
+
     if (props.modelValue.supported_plugins.length > 0) {
-        return {
+        ret.main = {
             type: 'plugin',
             btnClass: 'btn-success',
             tooltip: 'Edit through plugin: ' + props.modelValue.supported_plugins[0].name,
             icon: props.modelValue.supported_plugins[0].icon,
-            plugin: props.modelValue.supported_plugins[0].index,
+            plugin: props.modelValue.supported_plugins[0].name,
         }
-    }
-    switch (props.modelValue.supportedType) {
-        case ActionTypeSupportedType.DEFAULT:
-            return {
-                type: 'default',
-                btnClass: 'btn-secondary',
-                tooltip: 'No custom form yet, edit the arguments directly',
-                icon: 'pencil',
-                plugin: null,
-            }
 
-        default:
-            return {
-                type: 'custom',
-                btnClass: 'btn-primary',
-                tooltip: 'Custom form available, more customized editing',
-                icon: 'pencil',
-                plugin: null,
+        ret.dropdown.push(noPluginMain)
+
+        forEach(props.modelValue.supported_plugins, (value, index) => {
+            if (index === 0) {
+                return
             }
+            ret.dropdown.push({
+                type: 'plugin',
+                btnClass: 'btn-success',
+                tooltip: 'Edit through plugin: ' + value.name,
+                icon: value.icon,
+                plugin: value.name,
+            })
+        })
+    } else {
+        ret.main = noPluginMain
     }
+
+    return ret
 })
 
-function editClick(plugin: number | null = null) {
+function editClick(plugin: string | null = null) {
     if (plugin !== null) {
         emit('editPlugin', plugin)
         return
@@ -146,15 +177,48 @@ async function deleteAction() {
                         </div>
                     </div>
                     <div>
+                        <div class="btn-group me-2" v-if="editTypes.dropdown.length > 0">
+                            <BaseButton
+                                sm
+                                v-tooltip
+                                :data-title="editTypes.main.tooltip"
+                                :btn-class="editTypes.main.btnClass"
+                                :icon-left="editTypes.main.icon"
+                                :checkrunning="true"
+                                @click="editClick(editTypes.main.plugin)"
+                            />
+                            <button
+                                type="button"
+                                class="btn btn-success dropdown-toggle dropdown-toggle-split btn-sm"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                            >
+                                <span class="visually-hidden">Toggle Dropdown</span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <DropdownButton
+                                    v-for="editTypes in editTypes.dropdown"
+                                    :key="
+                                        editTypes.plugin !== null
+                                            ? editTypes.plugin + '-edit'
+                                            : 'default-edit'
+                                    "
+                                    @click="editClick(editTypes.plugin)"
+                                    :icon="editTypes.icon"
+                                    :txt="editTypes.tooltip"
+                                />
+                            </ul>
+                        </div>
                         <BaseButton
+                            v-else
                             sm
                             v-tooltip
-                            :data-title="editType.tooltip"
-                            :btn-class="editType.btnClass"
-                            :icon-left="editType.icon"
+                            :data-title="editTypes.main.tooltip"
+                            :btn-class="editTypes.main.btnClass"
+                            :icon-left="editTypes.main.icon"
                             :checkrunning="true"
                             class="me-2"
-                            @click="editClick(editType.plugin)"
+                            @click="editClick()"
                         />
                         <BaseButton
                             @click="deleteAction"
