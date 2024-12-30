@@ -18,6 +18,15 @@ Current goal is to integrate regular tasker tasks
 - Copy .env.example to a new file in the same root folder named `.env`
 - Fill in the details of the environment files, each variable is explained in the comment
 
+### Tasker
+
+In order to use this with tasker, you need to enable the new 2024/2025 UI
+
+- In tasker -> top right 3 dots -> preferences
+- Turn on Use Tasker 2024 UI (VERY EARLY) (2025 in some tasker versions)
+
+The app can only connect if you have that on, and you are in a task at the same time. I do not have access to a list of tasks. Nor do i have the ability to interact with tasks outside the current open task. If you do not have a task open the application won't be able to connect to tasker.
+
 ### Home assistant setup
 
 - You need a long lived access token from Home assistant, found in: your profile -> security -> long lived access tokens -> create token
