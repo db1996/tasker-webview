@@ -30,6 +30,8 @@ export default class HomeViewState {
     public newBasePlugin = ref<BasePlugin | null>(null)
     public newBaseActionType = ref<BaseActionType | null>(null)
     public showSettings = ref<boolean>(false)
+    public showNewTaskModal = ref<boolean>(false)
+    public pickVariable = ref<boolean>(false)
 
     public urlParams = ref<{
         edit: number | null

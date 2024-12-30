@@ -12,6 +12,10 @@ import router from '@/router'
 import { useRoute } from 'vue-router'
 import { EditStatusEnum } from '@/helpers/homeView/EditStatusEnum'
 import EditSettings from '@/tasker/Views/EditSettings.vue'
+import BsModal from '@/components/BsModal.vue'
+import PickNewTask from './partials/pickNewTask.vue'
+import type actionSpecCard from '@/helpers/homeView/actionSpecCard'
+import PickVariable from './partials/pickVariable.vue'
 
 const taskerClient = useTaskerClient().taskerClient
 const route = useRoute()
@@ -146,10 +150,6 @@ async function submitForm(FormData: any, form$: any) {
     state.value.refresh()
 }
 
-async function newHomeAssistantTask() {
-    router.push({ query: { add: 339, plugin: 'Home Assistant' } })
-}
-
 function setFormValue(val: { key: string; value: string }) {
     if (editForm$.value === null) {
         return
@@ -160,10 +160,36 @@ function setFormValue(val: { key: string; value: string }) {
         field.update(val.value)
     }
 }
+
+function newTaskPicked(card: actionSpecCard) {
+    router.push({ query: { add: card.code, plugin: card.plugin } })
+    state.value.showNewTaskModal = false
+}
 </script>
 
 <template :key="key">
+    <PickVariable :show="state.pickVariable" @close="state.pickVariable = false" />
+    <BsModal
+        :show="state.showNewTaskModal"
+        :width-class="'lg'"
+        @close="state.showNewTaskModal = false"
+    >
+        <template #title>
+            <h5>Pick an action</h5>
+        </template>
+        <template #content>
+            <PickNewTask @picked="newTaskPicked" />
+        </template>
+    </BsModal>
     <MainLayout title="Task actions" v-if="state.editStatus === EditStatusEnum.None">
+        <template #headerButton>
+            <BaseButton
+                @click="state.pickVariable = true"
+                btnClass="btn-primary me-2"
+                sm
+                icon-left="tag"
+            />
+        </template>
         <template v-slot:actions>
             <span class="text-small me-2">{{ state.taskerStatus.text }}</span>
             <MdiIcon :icon="state.taskerStatus.icon" :class="[state.taskerStatus.text_class]" />
@@ -171,16 +197,7 @@ function setFormValue(val: { key: string; value: string }) {
                 btnClass="btn-primary ms-2"
                 sm
                 icon-left="plus"
-                @click="newHomeAssistantTask"
-                v-tooltip
-                data-title="Create action"
-                :checkrunning="true"
-            />
-            <BaseButton
-                btnClass="btn-secondary ms-2"
-                sm
-                icon-left="plus"
-                @click="router.push({ query: { add: 547, plugin: null } })"
+                @click="state.showNewTaskModal = true"
                 v-tooltip
                 data-title="Create action"
                 :checkrunning="true"
@@ -218,12 +235,23 @@ function setFormValue(val: { key: string; value: string }) {
             </div>
         </template>
     </MainLayout>
-    <MainLayout
-        v-if="state.editStatus !== EditStatusEnum.None"
-        :size="state.actionTypeFormComponent?.props.modelValue.modal_width"
-    >
+    <MainLayout v-if="state.editStatus !== EditStatusEnum.None">
+        <template #headerButton>
+            <BaseButton
+                @click="state.pickVariable = true"
+                btnClass="btn-primary me-2"
+                sm
+                icon-left="tag"
+            />
+        </template>
         <template #title>
-            Edit action:
+            {{
+                state.editStatus === EditStatusEnum.EditAction ||
+                state.editStatus === EditStatusEnum.EditPlugin
+                    ? 'Edit'
+                    : 'Add'
+            }}
+            action:
             {{
                 state.actionTypeFormComponent?.props.modelValue.name === ''
                     ? state.actionTypeFormComponent?.props.modelValue.tasker_name

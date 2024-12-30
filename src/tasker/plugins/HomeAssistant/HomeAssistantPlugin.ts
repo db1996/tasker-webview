@@ -52,13 +52,12 @@ export default class HomeAssistantPlugin extends BasePlugin {
                 const body = JSON.parse(actionType.params.body)
                 this.serviceData = HomeAssistantPlugin.urlToServiceData(actionType.params.url, body)
 
-                if (this.serviceData.is_service) {
-                    const realActionType = this.actionType as HttpRequestActionType
-                    this.realActionType = realActionType
-                    return true
-                }
+                const realActionType = this.actionType as HttpRequestActionType
+                this.realActionType = realActionType
+                return true
             }
         }
+
         return false
     }
 

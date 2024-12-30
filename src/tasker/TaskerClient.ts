@@ -4,6 +4,8 @@ import { forEach } from 'lodash'
 import type BaseActionType from './actionTypes/BaseActionType'
 import { TaskerClientStatus } from './enums/TaskerClientStatus'
 import ActionSpec from './types/specs/ActionSpec'
+import type { CategorySpec } from './types/CategorySpec'
+import type { Variable } from './types/Variable'
 
 export default class TaskerClient {
     url: string = ''
@@ -83,6 +85,60 @@ export default class TaskerClient {
         }
     }
 
+    async getCategorySpecs(): Promise<Array<CategorySpec> | null> {
+        this.isRunning = true
+        this.taskerClientStatus = TaskerClientStatus.RETRIEVE
+        try {
+            const response = await fetch(this.url + '/category_specs')
+            const categorySpecData: Array<object> = await response.json()
+
+            this.isRunning = false
+            if (!Array.isArray(categorySpecData)) {
+                this.taskerClientStatus = TaskerClientStatus.NONE
+                return null
+            }
+
+            const categorySpecs: Array<CategorySpec> = categorySpecData.map(
+                (data) => data as CategorySpec,
+            )
+
+            this.taskerClientStatus = TaskerClientStatus.NONE
+            return categorySpecs
+        } catch (e) {
+            console.log('error caught', e)
+            this.isRunning = false
+            this.error = taskerStoreError.NO_CONNECT
+            this.taskerClientStatus = TaskerClientStatus.ERROR
+            return null
+        }
+    }
+
+    async getVariables(): Promise<Array<Variable> | null> {
+        this.isRunning = true
+        this.taskerClientStatus = TaskerClientStatus.RETRIEVE
+        try {
+            const response = await fetch(this.url + '/variables')
+            const categorySpecData: Array<object> = await response.json()
+
+            this.isRunning = false
+            if (!Array.isArray(categorySpecData)) {
+                this.taskerClientStatus = TaskerClientStatus.NONE
+                return null
+            }
+
+            const variables: Array<Variable> = categorySpecData.map((data) => data as Variable)
+
+            this.taskerClientStatus = TaskerClientStatus.NONE
+            return variables
+        } catch (e) {
+            console.log('error caught', e)
+            this.isRunning = false
+            this.error = taskerStoreError.NO_CONNECT
+            this.taskerClientStatus = TaskerClientStatus.ERROR
+            return null
+        }
+    }
+
     async getActions(): Promise<Array<Action> | null> {
         if (this.isRunning) {
             return null
@@ -100,8 +156,6 @@ export default class TaskerClient {
         }
         try {
             const response = await fetch(this.url + '/actions')
-            // const data = await response.json()
-            // deserialize the response to an array of Action objects
             const actions: Array<Action> = await response.json()
             if (!Array.isArray(actions)) {
                 this.taskerClientStatus = TaskerClientStatus.NONE
